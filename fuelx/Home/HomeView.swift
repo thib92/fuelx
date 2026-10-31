@@ -4,7 +4,8 @@ import SwiftUI
 struct HomeView: View {
     /// Two years of history, oldest first, ending today.
     @State private var days = Days.lastDays(730)
-    /// Drives the pager. Can be briefly nil mid-swipe, so the UI reads `currentDay` instead.
+    /// Drives the pager. Can be nil or pass through other days mid-scroll, so the UI reads
+    /// `currentDay`, which only follows the pager once scrolling settles.
     @State private var scrolledDay: Date? = Days.today
     @State private var currentDay = Days.today
     @State private var isShowingCalendar = false
@@ -16,8 +17,8 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                WeekStrip(selectedDay: currentDay, availableDays: (days.first ?? today)...today) { day in
-                    show(day, animated: true)
+                WeekStrip(selectedDay: currentDay, availableDays: (days.first ?? today)...today) { day, animated in
+                    show(day, animated: animated)
                 }
 
                 ScrollView(.horizontal) {
@@ -33,17 +34,22 @@ struct HomeView: View {
                 .scrollPosition(id: $scrolledDay)
                 .scrollIndicators(.hidden)
                 .defaultScrollAnchor(.trailing)
+                .onScrollPhaseChange { _, phase in
+                    if phase == .idle, let scrolledDay, scrolledDay != currentDay {
+                        currentDay = scrolledDay
+                    }
+                }
             }
             .background(Color(.systemGroupedBackground))
-            .onChange(of: scrolledDay) { _, day in
-                if let day { currentDay = day }
-            }
             .navigationTitle(Days.title(for: currentDay))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if !isOnToday {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button("Today") { show(today, animated: true) }
+                        Button("Today") {
+                            // Animating across many pages looks like a blur; jump instead.
+                            show(today, animated: Days.distance(from: currentDay, to: today) <= 7)
+                        }
                     }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
