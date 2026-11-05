@@ -1,42 +1,19 @@
 import Foundation
 
-/// Stand-in for the data layer: generates a plausible, stable log for any day.
+/// Stand-in for workouts until they're connected: generates plausible, stable ones for any day.
 ///
-/// The same day always produces the same log, and today's log only contains what has already
-/// happened. Replace with a Convex query (e.g. `logs:forDay`) once the backend exists.
+/// The same day always produces the same workouts, and today only shows finished ones.
 enum MockDayLogs {
-    static func log(for day: Date, now: Date = .now) -> DayLog {
+    static func workouts(for day: Date, now: Date = .now) -> [Workout] {
         let calendar = Calendar.current
         let index = calendar.dateComponents([.day], from: Date(timeIntervalSinceReferenceDate: 0), to: day).day ?? 0
         var rng = SplitMix64(seed: UInt64(bitPattern: Int64(index)))
 
         // Some days were never tracked.
-        if index % 9 == 4 { return DayLog(day: day, meals: [], workouts: []) }
+        if index % 9 == 4 { return [] }
 
         func at(_ hour: Int, _ minute: Int) -> Date {
             calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day) ?? day
-        }
-        func kcal(_ range: ClosedRange<Int>) -> Int {
-            Int.random(in: range, using: &rng) * 10
-        }
-
-        var meals = [
-            Meal(id: "\(index)-breakfast", kind: .breakfast,
-                 name: ["Oatmeal & berries", "Eggs on toast", "Yogurt & granola"].randomElement(using: &rng)!,
-                 calories: kcal(45...75), time: at(7, 30)),
-            Meal(id: "\(index)-lunch", kind: .lunch,
-                 name: ["Chicken rice bowl", "Pasta salad", "Turkey sandwich"].randomElement(using: &rng)!,
-                 calories: kcal(60...90), time: at(12, 30)),
-            Meal(id: "\(index)-dinner", kind: .dinner,
-                 name: ["Salmon & potatoes", "Beef stir-fry", "Lentil curry"].randomElement(using: &rng)!,
-                 calories: kcal(70...110), time: at(19, 30)),
-        ]
-        if Bool.random(using: &rng) {
-            meals.insert(
-                Meal(id: "\(index)-snack", kind: .snack,
-                     name: ["Banana & peanut butter", "Recovery shake", "Rice cakes"].randomElement(using: &rng)!,
-                     calories: kcal(20...40), time: at(16, 0)),
-                at: 2)
         }
 
         var workouts: [Workout] = []
@@ -74,10 +51,7 @@ enum MockDayLogs {
         }
 
         // Today: only what has happened so far.
-        return DayLog(
-            day: day,
-            meals: meals.filter { $0.time <= now },
-            workouts: workouts.filter { $0.start.addingTimeInterval(TimeInterval($0.duration.components.seconds)) <= now })
+        return workouts.filter { $0.start.addingTimeInterval(TimeInterval($0.duration.components.seconds)) <= now }
     }
 }
 

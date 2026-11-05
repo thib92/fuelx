@@ -1,42 +1,16 @@
 import Foundation
 
-/// Everything logged on one calendar day.
+/// One calendar day's calorie balance.
 struct DayLog {
     let day: Date
-    let meals: [Meal]
+    let mealCalories: Int
     let workouts: [Workout]
 
-    var mealCalories: Int { meals.reduce(0) { $0 + $1.calories } }
     var fuelCalories: Int { workouts.reduce(0) { $0 + $1.fuelCalories } }
     /// Meals plus fuel taken during workouts.
     var caloriesIn: Int { mealCalories + fuelCalories }
     var caloriesBurned: Int { workouts.reduce(0) { $0 + $1.caloriesBurned } }
     var netCalories: Int { caloriesIn - caloriesBurned }
-    var isEmpty: Bool { meals.isEmpty && workouts.isEmpty }
-}
-
-struct Meal: Identifiable {
-    enum Kind: String {
-        case breakfast = "Breakfast"
-        case lunch = "Lunch"
-        case dinner = "Dinner"
-        case snack = "Snack"
-
-        var systemImage: String {
-            switch self {
-            case .breakfast: "sun.horizon"
-            case .lunch: "sun.max"
-            case .dinner: "moon.stars"
-            case .snack: "carrot"
-            }
-        }
-    }
-
-    let id: String
-    let kind: Kind
-    let name: String
-    let calories: Int
-    let time: Date
 }
 
 struct Workout: Identifiable {

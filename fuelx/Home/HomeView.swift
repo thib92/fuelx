@@ -25,7 +25,7 @@ struct HomeView: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(days, id: \.self) { day in
-                            DayPage(log: MockDayLogs.log(for: day)) { isShowingProfile = true }
+                            DayPage(day: day, workouts: MockDayLogs.workouts(for: day)) { isShowingProfile = true }
                                 .containerRelativeFrame(.horizontal)
                         }
                     }

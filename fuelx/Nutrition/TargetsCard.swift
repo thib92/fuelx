@@ -4,6 +4,8 @@ import SwiftUI
 struct TargetsCard: View {
     let targets: NutritionTargets
     let caloriesEaten: Int
+    /// Macros from logged entries. Workout fuel doesn't have macros yet.
+    var eaten: NutritionTotals?
 
     private var target: Int { Int(targets.calories) }
     private var remaining: Int { target - caloriesEaten }
@@ -30,22 +32,24 @@ struct TargetsCard: View {
                 .tint(remaining >= 0 ? nil : .orange)
 
             HStack(alignment: .top) {
-                macro("Protein", grams: targets.proteinG)
-                macro("Carbs", grams: targets.carbsG,
+                macro("Protein", grams: targets.proteinG, eaten: eaten?.proteinG)
+                macro("Carbs", grams: targets.carbsG, eaten: eaten?.carbsG,
                       detail: "\(targets.carbsGPerKg.formatted(.number.precision(.fractionLength(1)))) g/kg")
-                macro("Fat", grams: targets.fatG)
+                macro("Fat", grams: targets.fatG, eaten: eaten?.fatG)
             }
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
     }
 
-    private func macro(_ title: LocalizedStringKey, grams: Double, detail: String? = nil) -> some View {
+    private func macro(
+        _ title: LocalizedStringKey, grams: Double, eaten: Double?, detail: String? = nil
+    ) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text("\(Int(grams)) g")
+            Text(eaten.map { "\(Int($0)) of \(Int(grams)) g" } ?? "\(Int(grams)) g")
                 .font(.headline)
                 .monospacedDigit()
             if let detail {

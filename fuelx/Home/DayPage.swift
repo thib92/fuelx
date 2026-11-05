@@ -4,11 +4,20 @@ import SwiftUI
 
 /// One day's numbers: summary, targets, meals, and workouts with the fuel taken during them.
 struct DayPage: View {
-    let log: DayLog
+    let day: Date
+    let workouts: [Workout]
     let onSetUpProfile: () -> Void
 
     /// `nil` until the first result arrives; `.some(nil)` when there's no profile yet.
     @State private var targets: NutritionTargets??
+    /// `nil` until the first result arrives; `.some(nil)` when signed out.
+    @State private var dayEntries: DayEntries??
+
+    private var loadedEntries: DayEntries? { dayEntries ?? nil }
+
+    private var log: DayLog {
+        DayLog(day: day, mealCalories: Int(loadedEntries?.totals.kcal ?? 0), workouts: workouts)
+    }
 
     var body: some View {
         List {
@@ -18,41 +27,60 @@ struct DayPage: View {
 
             targetsSection
 
-            if log.isEmpty {
-                ContentUnavailableView(
-                    "Nothing Logged",
-                    systemImage: "fork.knife",
-                    description: Text("Meals, workouts and fuel for this day will show up here."))
-            } else {
-                Section {
-                    ForEach(log.meals) { MealRow(meal: $0) }
-                } header: {
-                    SectionHeader(title: "Meals", value: log.mealCalories.kcal)
-                }
+            ForEach(MealKind.allCases) { meal in
+                mealSection(meal)
+            }
 
-                Section {
-                    if log.workouts.isEmpty {
-                        Label("Rest day", systemImage: "bed.double")
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(log.workouts) { WorkoutRow(workout: $0) }
-                } header: {
-                    SectionHeader(
-                        title: "Workouts",
-                        value: log.workouts.isEmpty ? nil : "−\(log.caloriesBurned.kcal)")
+            Section {
+                if log.workouts.isEmpty {
+                    Label("Rest day", systemImage: "bed.double")
+                        .foregroundStyle(.secondary)
                 }
+                ForEach(log.workouts) { WorkoutRow(workout: $0) }
+            } header: {
+                SectionHeader(
+                    title: Text("Workouts"),
+                    value: log.workouts.isEmpty ? nil : "−\(log.caloriesBurned.kcal)")
             }
         }
         .listStyle(.insetGrouped)
-        .task(id: log.day) {
+        .task(id: day) {
             let updates = convex.subscribe(
                 to: "nutrition:targetsForDay",
-                with: ["day": Days.key(for: log.day)],
+                with: ["day": Days.key(for: day)],
                 yielding: NutritionTargets?.self)
             do {
                 for try await value in updates.values { targets = .some(value) }
             } catch {
                 print("nutrition:targetsForDay failed: \(error)")
+            }
+        }
+        .task(id: day) {
+            let updates = convex.subscribe(
+                to: "logs:forDay",
+                with: ["day": Days.key(for: day)],
+                yielding: DayEntries?.self)
+            do {
+                for try await value in updates.values { dayEntries = .some(value) }
+            } catch {
+                print("logs:forDay failed: \(error)")
+            }
+        }
+    }
+
+    private func mealSection(_ meal: MealKind) -> some View {
+        let entries = loadedEntries?.entries(for: meal) ?? []
+        let totals = loadedEntries?.mealTotals[meal]
+        return Section {
+            ForEach(entries) { LogEntryRow(entry: $0) }
+        } header: {
+            SectionHeader(
+                title: Text(meal.label),
+                value: entries.isEmpty ? nil : Int(totals?.kcal ?? 0).kcal)
+        } footer: {
+            if let totals, !entries.isEmpty {
+                Text("Protein \(totals.proteinG.grams) · Carbs \(totals.carbsG.grams) · Fat \(totals.fatG.grams)")
+                    .monospacedDigit()
             }
         }
     }
@@ -62,7 +90,7 @@ struct DayPage: View {
         switch targets {
         case .some(.some(let targets)):
             Section {
-                TargetsCard(targets: targets, caloriesEaten: log.caloriesIn)
+                TargetsCard(targets: targets, caloriesEaten: log.caloriesIn, eaten: loadedEntries?.totals)
             } header: {
                 Text("Daily Targets")
             } footer: {
@@ -83,12 +111,12 @@ struct DayPage: View {
 }
 
 private struct SectionHeader: View {
-    let title: LocalizedStringKey
+    let title: Text
     let value: String?
 
     var body: some View {
         HStack {
-            Text(title)
+            title
             Spacer()
             if let value {
                 Text(value).monospacedDigit()
@@ -148,23 +176,25 @@ struct DaySummary: View {
     }
 }
 
-private struct MealRow: View {
-    let meal: Meal
+private struct LogEntryRow: View {
+    let entry: LogEntry
+
+    private var detail: String {
+        [entry.brand, entry.grams.grams, entry.estimated ? String(localized: "Estimated") : nil]
+            .compactMap(\.self)
+            .joined(separator: " · ")
+    }
 
     var body: some View {
         HStack {
-            Label {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(meal.kind.rawValue)
-                    Text(meal.name)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } icon: {
-                Image(systemName: meal.kind.systemImage)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.name)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
-            Text(meal.calories.kcal)
+            Text(Int(entry.kcal).kcal)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
         }
@@ -228,5 +258,5 @@ private struct WorkoutRow: View {
 }
 
 #Preview {
-    DayPage(log: MockDayLogs.log(for: Days.today.addingTimeInterval(-86_400)), onSetUpProfile: {})
+    DayPage(day: Days.today, workouts: MockDayLogs.workouts(for: Days.today), onSetUpProfile: {})
 }
