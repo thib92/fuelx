@@ -81,6 +81,36 @@ export const mealValidator = v.union(
 );
 export type MealName = Infer<typeof mealValidator>;
 
+/** Mirrors `Workout.Sport` in fuelx/Home/DayLog.swift. */
+export const sportValidator = v.union(
+  v.literal("run"),
+  v.literal("ride"),
+  v.literal("swim"),
+  v.literal("strength"),
+  v.literal("hike"),
+  v.literal("walk"),
+  v.literal("mobility"),
+  v.literal("other"),
+);
+
+/** One workout as Apple Health reports it. See docs/superpowers/specs/ for what the values mean. */
+export const workoutInputFields = {
+  /** HealthKit UUID. */
+  externalId: v.string(),
+  /** The app that wrote the workout. */
+  sourceBundleId: v.string(),
+  /** Local calendar date, "YYYY-MM-DD". */
+  day: v.string(),
+  sport: sportValidator,
+  /** Unix ms. */
+  startAt: v.number(),
+  durationSec: v.number(),
+  kcal: v.optional(v.number()),
+  basalKcal: v.optional(v.number()),
+  distanceM: v.optional(v.number()),
+  indoor: v.optional(v.boolean()),
+};
+
 export default defineSchema({
   profiles: defineTable({
     /** Better Auth user id (`identity.subject`). */
@@ -134,5 +164,21 @@ export default defineSchema({
     ),
     /** True when values came from the model, not a database food. */
     estimated: v.boolean(),
+  }).index("by_user_day", ["userId", "day"]),
+
+  workouts: defineTable({
+    userId: v.string(),
+    ...workoutInputFields,
+  })
+    .index("by_user_day", ["userId", "day"])
+    .index("by_user_externalId", ["userId", "externalId"]),
+
+  dailyActivity: defineTable({
+    userId: v.string(),
+    /** Local calendar date, "YYYY-MM-DD". */
+    day: v.string(),
+    steps: v.number(),
+    /** Steps from a watch or tracker, not the phone. Absent when there are none. */
+    wearableSteps: v.optional(v.number()),
   }).index("by_user_day", ["userId", "day"]),
 });

@@ -15,6 +15,7 @@ import {
   type NutritionProfile,
 } from "./lib/nutritionTargets";
 import { transferLogData } from "./logs";
+import { transferWorkoutData } from "./workouts";
 import { profileInputFields } from "./schema";
 
 const HEIGHT_CM_RANGE = { min: 100, max: 250 } as const;
@@ -78,6 +79,7 @@ export const transferOnLink = internalMutation({
   returns: v.null(),
   handler: async (ctx, { fromUserId, toUserId }) => {
     await transferLogData(ctx, fromUserId, toUserId);
+    await transferWorkoutData(ctx, fromUserId, toUserId);
 
     const guestProfile = await findProfile(ctx, fromUserId);
     if (!guestProfile) return null;

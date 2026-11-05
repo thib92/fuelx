@@ -47,12 +47,23 @@ struct MealView: View {
         }
         .overlay {
             if loadedEntries != nil, entries.isEmpty {
-                ContentUnavailableView {
-                    Label("Nothing Logged", systemImage: meal.systemImage)
-                } actions: {
-                    Button("Add Food") { isAdding = true }
-                        .buttonStyle(.borderedProminent)
+                // Not ContentUnavailableView: it shrinks its actions to fit, so the button can't span.
+                VStack(spacing: 24) {
+                    VStack(spacing: 16) {
+                        Image(systemName: meal.systemImage)
+                            .font(.system(size: 48))
+                            .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
+                        Text("Nothing Logged")
+                            .font(.title2.bold())
+                    }
+                    Button { isAdding = true } label: {
+                        Text("Add Food").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                 }
+                .padding(.horizontal, 32)
             }
         }
         .navigationTitle(meal.label)
@@ -110,7 +121,7 @@ struct MealView: View {
         .task(id: day) {
             let updates = convex.subscribe(
                 to: "nutrition:targetsForDay",
-                with: ["day": Days.key(for: day)],
+                with: NutritionTargets.queryArgs(for: day),
                 yielding: NutritionTargets?.self)
             do {
                 for try await value in updates.values { targets = value }

@@ -108,3 +108,48 @@ describe("computeTargets", () => {
     expect(t.lowCarbs).toBe(true);
   });
 });
+
+describe("computeTargets with steps", () => {
+  const profile: NutritionProfile = {
+    sex: "male",
+    birthDate: "1990-01-01",
+    heightCm: 180,
+    weightKg: 70,
+    activityLevel: "moderate",
+    goal: "maintain",
+    goalRateKgPerWeek: 0,
+    proteinGPerKg: 1.6,
+    fatPercent: 25,
+  };
+  const day = "2026-11-04";
+  const bmr = computeTargets(profile, day).bmr;
+
+  test("uses the activity factor without steps", () => {
+    const targets = computeTargets(profile, day);
+    expect(targets.maintenanceCalories).toBe(Math.round(bmr * 1.5));
+    expect(targets.stepsUsed).toBeUndefined();
+  });
+
+  test("replaces the activity factor with steps", () => {
+    const targets = computeTargets(profile, day, { everydaySteps: 12500, inProgress: false });
+    expect(targets.maintenanceCalories).toBe(Math.round(bmr * 1.2 + 280));
+    expect(targets.stepsUsed).toBe(12500);
+  });
+
+  test("a finished day below the baseline is the sedentary base", () => {
+    const targets = computeTargets(profile, day, { everydaySteps: 1200, inProgress: false });
+    expect(targets.maintenanceCalories).toBe(Math.round(bmr * 1.2));
+  });
+
+  test("today doesn't start low", () => {
+    const targets = computeTargets(profile, day, { everydaySteps: 300, inProgress: true });
+    expect(targets.maintenanceCalories).toBe(Math.round(bmr * 1.5));
+    expect(targets.stepsUsed).toBeUndefined();
+  });
+
+  test("today uses steps once they pass the activity factor", () => {
+    const targets = computeTargets(profile, day, { everydaySteps: 25000, inProgress: true });
+    expect(targets.maintenanceCalories).toBe(Math.round(bmr * 1.2 + 630));
+    expect(targets.stepsUsed).toBe(25000);
+  });
+});

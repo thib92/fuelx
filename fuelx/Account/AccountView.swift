@@ -56,6 +56,7 @@ struct AccountView: View {
                     } label: {
                         Label("Nutrition Profile", systemImage: "target")
                     }
+                    appleHealthRow
                     NavigationLink {
                         AboutView()
                     } label: {
@@ -87,6 +88,25 @@ struct AccountView: View {
                     print("auth:getCurrentUser failed: \(error)")
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var appleHealthRow: some View {
+        let health = HealthSync.shared
+        if health.isConnected {
+            LabeledContent {
+                Text("Connected")
+            } label: {
+                Label("Apple Health", systemImage: "heart")
+            }
+        } else {
+            Button("Connect Apple Health", systemImage: "heart") {
+                Task { await health.connect() }
+            }
+        }
+        if let error = health.lastError {
+            Text(error).font(.caption).foregroundStyle(.red)
         }
     }
 
