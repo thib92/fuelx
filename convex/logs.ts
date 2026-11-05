@@ -276,3 +276,57 @@ export const recents = query({
     return results.filter((result) => result !== null);
   },
 });
+
+async function transferRecents(ctx: MutationCtx, fromUserId: string, toUserId: string) {
+  const guestRecents = await ctx.db
+    .query("recentFoods")
+    .withIndex("by_user_food", (q) => q.eq("userId", fromUserId))
+    .collect();
+  for (const guest of guestRecents) {
+    const existing = await ctx.db
+      .query("recentFoods")
+      .withIndex("by_user_food", (q) => q.eq("userId", toUserId).eq("foodId", guest.foodId))
+      .unique();
+    if (!existing) {
+      await ctx.db.patch(guest._id, { userId: toUserId });
+      continue;
+    }
+    const latest = guest.lastUsedAt > existing.lastUsedAt ? guest : existing;
+    await ctx.db.patch(existing._id, {
+      lastUsedAt: latest.lastUsedAt,
+      lastGrams: latest.lastGrams,
+      useCount: existing.useCount + guest.useCount,
+    });
+    await ctx.db.delete(guest._id);
+  }
+}
+
+/**
+ * Moves a guest's log data to the account they linked. Merges, because the account may already
+ * exist (returning user on a fresh install).
+ */
+export async function transferLogData(
+  ctx: MutationCtx,
+  fromUserId: string,
+  toUserId: string,
+): Promise<void> {
+  const entries = await ctx.db
+    .query("logEntries")
+    .withIndex("by_user_day", (q) => q.eq("userId", fromUserId))
+    .collect();
+  for (const entry of entries) {
+    await ctx.db.patch(entry._id, { userId: toUserId });
+  }
+
+  await transferRecents(ctx, fromUserId, toUserId);
+
+  // Custom foods are few, so filtering them avoids an index across every food.
+  const customFoods = await ctx.db
+    .query("foods")
+    .withIndex("by_source_sourceId", (q) => q.eq("source", "custom"))
+    .filter((q) => q.eq(q.field("ownerId"), fromUserId))
+    .collect();
+  for (const food of customFoods) {
+    await ctx.db.patch(food._id, { ownerId: toUserId });
+  }
+}
