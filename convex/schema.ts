@@ -1,5 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { type Infer, v } from "convex/values";
 
 export const sexValidator = v.union(v.literal("male"), v.literal("female"));
 
@@ -32,10 +32,74 @@ export const profileInputFields = {
   fatPercent: v.number(),
 };
 
+/** Nutrition per 100 g. Sugar, fibre and salt are often missing from product data. */
+export const per100gValidator = v.object({
+  kcal: v.number(),
+  proteinG: v.number(),
+  carbsG: v.number(),
+  fatG: v.number(),
+  sugarG: v.optional(v.number()),
+  fiberG: v.optional(v.number()),
+  saltG: v.optional(v.number()),
+});
+
+export const foodSourceValidator = v.union(
+  v.literal("ciqual"),
+  v.literal("off"),
+  v.literal("label"),
+  v.literal("custom"),
+);
+
+const sharedFoodFields = {
+  /** CIQUAL code, barcode, or a generated id. */
+  sourceId: v.string(),
+  barcode: v.optional(v.string()),
+  name: v.string(),
+  /** CIQUAL only. */
+  nameEn: v.optional(v.string()),
+  brand: v.optional(v.string()),
+  /** From `searchTextFor` in lib/foodSearch.ts. */
+  searchText: v.string(),
+  per100g: per100gValidator,
+  servingG: v.optional(v.number()),
+  /** OFF's scan count. Only covers OFF's own apps, and is blank for many popular products. */
+  offScans: v.optional(v.number()),
+};
+
+/** What the import scripts send to `foods:importBatch`. */
+export const importDocValidator = v.object({
+  source: v.union(v.literal("ciqual"), v.literal("off")),
+  ...sharedFoodFields,
+});
+export type ImportDoc = Infer<typeof importDocValidator>;
+
 export default defineSchema({
   profiles: defineTable({
     /** Better Auth user id (`identity.subject`). */
     userId: v.string(),
     ...profileInputFields,
   }).index("by_userId", ["userId"]),
+
+  foods: defineTable({
+    source: foodSourceValidator,
+    ...sharedFoodFields,
+    /** Set on "custom" foods, which are private to this user. */
+    ownerId: v.optional(v.string()),
+  })
+    .index("by_barcode", ["barcode"])
+    .index("by_source_sourceId", ["source", "sourceId"])
+    .searchIndex("search_text", {
+      searchField: "searchText",
+      filterFields: ["source", "ownerId"],
+    }),
+
+  recentFoods: defineTable({
+    userId: v.string(),
+    foodId: v.id("foods"),
+    lastUsedAt: v.number(),
+    useCount: v.number(),
+    lastGrams: v.number(),
+  })
+    .index("by_user_lastUsed", ["userId", "lastUsedAt"])
+    .index("by_user_food", ["userId", "foodId"]),
 });
