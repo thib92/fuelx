@@ -189,8 +189,11 @@ Convex search has no typo tolerance; this is accepted, and recents reduce how of
 Day view:
 
 - `DayPage` subscribes to `logs:forDay`, replacing the meals half of `MockDayLogs`.
-- Meals are grouped by kind with kcal and macro totals, and `TargetsCard` receives real totals.
-- Each meal section has an add button.
+- Each meal is one row with its kcal, a preview of its foods and an add button, and
+  `TargetsCard` receives real totals.
+- Tapping a meal opens its page: a recap of kcal and macros, with their share of the day's targets
+  when there's a profile, then its foods. Foods live here rather than on the day view so that
+  swipe to delete doesn't compete with swiping between days.
 
 Add sheet, opened from a meal:
 
@@ -205,7 +208,7 @@ Speed features:
 - **Copy yesterday:** copy a meal from the previous day.
 - **Custom food:** create a private food by hand when nothing matches.
 
-Editing: entries can be changed or deleted from the day view by swipe or tap.
+Editing: on the meal page, entries can be changed or deleted by tap, or deleted by swipe.
 
 Credit Open Food Facts and CIQUAL with links on an About screen, as ODbL requires for public use.
 

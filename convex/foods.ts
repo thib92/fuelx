@@ -1,8 +1,10 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
+import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
-import { isInRange } from "./lib/foodQuality";
+import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { isInRange, isValidBarcode } from "./lib/foodQuality";
 import { normalizeTerms, rankFoods, searchTextFor } from "./lib/foodSearch";
+import { fetchOffRow, offDoc } from "./lib/offProduct";
 import {
   foodSourceValidator,
   importDocValidator,
@@ -29,6 +31,13 @@ const foodResult = v.object({
   per100g: per100gValidator,
   servingG: v.optional(v.number()),
 });
+
+const barcodeLookupValidator = v.union(
+  v.object({ status: v.literal("found"), food: foodResult }),
+  v.object({ status: v.literal("notFound") }),
+  v.object({ status: v.literal("unavailable") }),
+);
+type BarcodeLookup = Infer<typeof barcodeLookupValidator>;
 
 function toResult(food: Doc<"foods">) {
   return {
@@ -87,6 +96,66 @@ export const search = query({
     return rankFoods([...candidates.values()], terms, recentIds, rawQuery)
       .slice(0, SEARCH_RESULT_LIMIT)
       .map(toResult);
+  },
+});
+
+/** The food for a barcode, preferring a label read over OFF's data. */
+export const byBarcode = internalQuery({
+  args: { barcode: v.string() },
+  returns: v.union(foodResult, v.null()),
+  handler: async (ctx, { barcode }) => {
+    const foods = await ctx.db
+      .query("foods")
+      .withIndex("by_barcode", (q) => q.eq("barcode", barcode))
+      .collect();
+    const food =
+      foods.find((candidate) => candidate.source === "label") ??
+      foods.find((candidate) => candidate.source === "off");
+    return food ? toResult(food) : null;
+  },
+});
+
+/** Saves a product from a live lookup, for everyone. Two people can scan it at once. */
+export const saveOffFood = internalMutation({
+  args: { doc: importDocValidator },
+  returns: foodResult,
+  handler: async (ctx, { doc }) => {
+    const existing = await ctx.db
+      .query("foods")
+      .withIndex("by_source_sourceId", (q) =>
+        q.eq("source", doc.source).eq("sourceId", doc.sourceId),
+      )
+      .unique();
+    const id = existing?._id ?? (await ctx.db.insert("foods", doc));
+    const food = existing ?? (await ctx.db.get(id));
+    if (!food) throw new ConvexError("That food couldn't be saved.");
+    return toResult(food);
+  },
+});
+
+/** Finds a scanned product in our foods, then on OFF, saving what OFF has for next time. */
+export const lookupBarcode = action({
+  args: { barcode: v.string() },
+  returns: barcodeLookupValidator,
+  handler: async (ctx, { barcode }): Promise<BarcodeLookup> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError("You need to be signed in.");
+    if (!isValidBarcode(barcode)) return { status: "notFound" };
+
+    const known = await ctx.runQuery(internal.foods.byBarcode, { barcode });
+    if (known) return { status: "found", food: known };
+
+    const userAgent = process.env.OFF_USER_AGENT;
+    if (!userAgent) {
+      console.error("OFF_USER_AGENT is not set");
+      return { status: "unavailable" };
+    }
+    const row = await fetchOffRow(barcode, userAgent);
+    if (typeof row === "string") return { status: row };
+
+    const doc = offDoc(row);
+    if (!doc) return { status: "notFound" };
+    return { status: "found", food: await ctx.runMutation(internal.foods.saveOffFood, { doc }) };
   },
 });
 

@@ -18,8 +18,9 @@ struct AddFoodSheet: View {
     @State private var repeated: Set<String> = []
 
     private enum Route: Hashable {
-        case amount(FoodResult, grams: Double)
+        case amount(FoodResult, grams: Double, origin: String = "search")
         case customFood(name: String)
+        case scan
     }
 
     private static let searchDelay: Duration = .milliseconds(250)
@@ -52,17 +53,26 @@ struct AddFoodSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(role: .close) { dismiss() }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    NavigationLink(value: Route.scan) {
+                        Label("Scan a Barcode", systemImage: "barcode.viewfinder")
+                    }
+                }
             }
             .navigationDestination(for: Route.self) { route in
                 switch route {
-                case .amount(let food, let grams):
+                case .amount(let food, let grams, let origin):
                     AmountView(food: food, initialGrams: grams, primaryTitle: "Add") { grams in
-                        try await add(food, grams: grams, origin: "search")
+                        try await add(food, grams: grams, origin: origin)
                         dismiss()
                     }
                 case .customFood(let name):
                     CustomFoodForm(name: name) { food in
                         path = [.amount(food, grams: food.servingG ?? Self.defaultGrams)]
+                    }
+                case .scan:
+                    ScanView { food in
+                        path = [.amount(food, grams: defaultGrams(for: food), origin: "barcode")]
                     }
                 }
             }

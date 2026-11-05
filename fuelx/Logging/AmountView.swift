@@ -4,6 +4,8 @@ import SwiftUI
 struct AmountView: View {
     let food: FoodResult
     let primaryTitle: LocalizedStringKey
+    /// Shows a Delete button when set.
+    let onDelete: (() async throws -> Void)?
     let onSubmit: (Double) async throws -> Void
 
     @State private var grams: Double
@@ -16,10 +18,12 @@ struct AmountView: View {
         food: FoodResult,
         initialGrams: Double,
         primaryTitle: LocalizedStringKey,
+        onDelete: (() async throws -> Void)? = nil,
         onSubmit: @escaping (Double) async throws -> Void
     ) {
         self.food = food
         self.primaryTitle = primaryTitle
+        self.onDelete = onDelete
         self.onSubmit = onSubmit
         _grams = State(initialValue: initialGrams)
     }
@@ -62,6 +66,13 @@ struct AmountView: View {
                 Text("For This Amount")
             }
 
+            if let onDelete {
+                Section {
+                    Button("Delete", systemImage: "trash", role: .destructive) { perform(onDelete) }
+                        .disabled(isSaving)
+                }
+            }
+
             if let errorMessage {
                 Section {
                     Text(errorMessage).foregroundStyle(.red)
@@ -72,20 +83,20 @@ struct AmountView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button(primaryTitle, action: save)
+                Button(primaryTitle) { perform { try await onSubmit(grams) } }
                     .disabled(!canSave)
             }
         }
     }
 
-    private func save() {
+    private func perform(_ action: @escaping () async throws -> Void) {
         isSaving = true
         errorMessage = nil
         Task {
             defer { isSaving = false }
             do {
                 try await ConnectionMonitor.shared.ensureConnected()
-                try await onSubmit(grams)
+                try await action()
             } catch {
                 errorMessage = error.convexMessage
             }

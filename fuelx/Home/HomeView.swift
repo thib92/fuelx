@@ -45,6 +45,10 @@ struct HomeView: View {
                 }
             }
             .background(Color(.systemGroupedBackground))
+            // Here, not in DayPage: destinations inside the lazy pager are ignored.
+            .navigationDestination(for: MealRoute.self) { route in
+                MealView(day: route.day, meal: route.meal)
+            }
             .navigationTitle(Days.title(for: currentDay))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
