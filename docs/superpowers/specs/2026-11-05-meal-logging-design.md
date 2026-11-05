@@ -161,15 +161,26 @@ Tested on a 10k sample in the dev deployment: "pâtes" returned nothing while "p
 "yaourt" and "yaourts" returned different results; and "yaourt nat" ranked a "Nat &form" tea
 first, because one matching word is enough.
 
-Ranking, in `foodSearch.ts` as a pure function over 50 fetched results:
+Each search fetches 200 public foods, 50 CIQUAL foods in a separate search, and the user's own
+`custom` foods. Tested on the full data: a fetch of 50 returned only 21 exact matches for "pâtes",
+and no CIQUAL food reached the top 200 for "riz". Prefix matching on the last word causes the first,
+and the 620,000 products crowding out 3,400 generic foods cause the second.
+
+Ranking, in `foodSearch.ts` as a pure function:
 
 1. Foods from the user's `recentFoods`.
-2. Results containing every query term.
-3. The rest.
+2. Results with every query term as a whole word.
+3. Results matching every term, with the last as a prefix.
+4. The rest.
 
-Within each group Convex's order is kept, except that products with `offScans >= 20` move to the
-top of their group. Blank counts are never penalised. Results are limited to public foods plus
-the user's own `custom` foods. The client waits 250 ms after typing before querying.
+Within each group, names containing the words as typed, before plural stripping, come first, and
+names starting with them lead those. "Pâtes" and "pâté" share the stem `pate`, but "pates" is only
+a word in the first, so pasta comes before pâté, and "Riz blanc" before "Farine de riz".
+
+Ties go to CIQUAL foods, since that is usually what someone logging home-cooked food wants. Then
+come products with `offScans >= 20`, most scanned first, then the rest in Convex's order. Blank
+counts are never penalised. Results are limited to public foods plus the user's own `custom`
+foods. The client waits 250 ms after typing before querying.
 
 Convex search has no typo tolerance; this is accepted, and recents reduce how often it matters.
 

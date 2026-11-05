@@ -10,7 +10,11 @@ import {
   type ImportDoc,
 } from "./schema";
 
-const SEARCH_FETCH_LIMIT = 50;
+/** Prefix matches crowd the top results, so ranking needs a wide net to find exact ones. */
+const SEARCH_FETCH_LIMIT = 200;
+/** Generic foods are searched separately, or 620k products would crowd them out. */
+const GENERIC_FETCH_LIMIT = 50;
+const OWN_FOODS_FETCH_LIMIT = 50;
 const SEARCH_RESULT_LIMIT = 25;
 const RECENTS_FOR_RANKING = 200;
 const MAX_IMPORT_BATCH = 500;
@@ -50,7 +54,7 @@ export const search = query({
     if (terms.length === 0) return [];
     const searchQuery = terms.join(" ");
 
-    const [publicFoods, ownFoods, recents] = await Promise.all([
+    const [publicFoods, genericFoods, ownFoods, recents] = await Promise.all([
       ctx.db
         .query("foods")
         .withSearchIndex("search_text", (q) =>
@@ -60,9 +64,15 @@ export const search = query({
       ctx.db
         .query("foods")
         .withSearchIndex("search_text", (q) =>
+          q.search("searchText", searchQuery).eq("source", "ciqual"),
+        )
+        .take(GENERIC_FETCH_LIMIT),
+      ctx.db
+        .query("foods")
+        .withSearchIndex("search_text", (q) =>
           q.search("searchText", searchQuery).eq("ownerId", userId),
         )
-        .take(SEARCH_FETCH_LIMIT),
+        .take(OWN_FOODS_FETCH_LIMIT),
       ctx.db
         .query("recentFoods")
         .withIndex("by_user_lastUsed", (q) => q.eq("userId", userId))
@@ -71,7 +81,10 @@ export const search = query({
     ]);
 
     const recentIds = new Set<string>(recents.map((recent) => recent.foodId));
-    return rankFoods([...ownFoods, ...publicFoods], terms, recentIds)
+    const candidates = new Map(
+      [...ownFoods, ...genericFoods, ...publicFoods].map((food) => [food._id, food]),
+    );
+    return rankFoods([...candidates.values()], terms, recentIds, rawQuery)
       .slice(0, SEARCH_RESULT_LIMIT)
       .map(toResult);
   },

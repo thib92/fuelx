@@ -83,6 +83,42 @@ describe("foods:search", () => {
     );
   });
 
+  test("generic foods surface even when hundreds of products match", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 250; i += 1) {
+        await ctx.db.insert("foods", { ...publicFood(`Riz marque ${i}`), source: "off" });
+      }
+      await ctx.db.insert("foods", publicFood("Riz blanc, cuit"));
+    });
+    const results = await t.withIdentity({ subject: "alice" }).query(api.foods.search, {
+      query: "riz",
+    });
+    expect(results[0].name).toBe("Riz blanc, cuit");
+  });
+
+  test("pasta beats pâté whichever way pâtes is typed", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("foods", publicFood("Pâté breton"));
+      await ctx.db.insert("foods", publicFood("Pâtes alimentaires, cuites"));
+    });
+    const alice = t.withIdentity({ subject: "alice" });
+    const accented = await alice.query(api.foods.search, { query: "pâtes" });
+    const plain = await alice.query(api.foods.search, { query: "pates" });
+    expect(accented[0].name).toBe("Pâtes alimentaires, cuites");
+    expect(plain[0].name).toBe("Pâtes alimentaires, cuites");
+  });
+
+  test("a generic food found by both searches appears once", async () => {
+    const t = convexTest(schema, modules);
+    await t.run((ctx) => ctx.db.insert("foods", publicFood("Riz blanc, cuit")));
+    const results = await t.withIdentity({ subject: "alice" }).query(api.foods.search, {
+      query: "riz",
+    });
+    expect(results).toHaveLength(1);
+  });
+
   test("recent foods rank first", async () => {
     const t = convexTest(schema, modules);
     await t.run(async (ctx) => {

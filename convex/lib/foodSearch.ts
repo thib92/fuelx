@@ -37,30 +37,61 @@ function containsAllTerms(searchText: string, terms: string[]): boolean {
   );
 }
 
-function popularFirst<T extends { offScans?: number }>(foods: T[]): T[] {
-  const isPopular = (food: T) => (food.offScans ?? 0) >= POPULAR_SCANS;
+/** Whether every term appears as a whole word. */
+function containsExactTerms(searchText: string, terms: string[]): boolean {
+  const tokens = searchText.split(" ");
+  return terms.every((term) => tokens.includes(term));
+}
+
+/** Generic foods, then popular products, then Convex's relevance order. */
+function orderGroup<T extends { source?: string; offScans?: number }>(foods: T[]): T[] {
+  const isGeneric = (food: T) => food.source === "ciqual";
+  const isPopular = (food: T) => !isGeneric(food) && (food.offScans ?? 0) >= POPULAR_SCANS;
   return [
+    ...foods.filter(isGeneric),
     ...foods.filter(isPopular).sort((a, b) => (b.offScans ?? 0) - (a.offScans ?? 0)),
-    ...foods.filter((food) => !isPopular(food)),
+    ...foods.filter((food) => !isGeneric(food) && !isPopular(food)),
   ];
 }
 
+const STARTS_WITH_TYPED = 2;
+const CONTAINS_TYPED = 1;
+const NO_TYPED_MATCH = 0;
+
 /**
- * Orders search results: the user's recent foods, then foods containing every query term, then
- * the rest. Within a group, Convex's relevance order is kept apart from popular products.
+ * How well a name matches the words as typed, before plural stripping. Stemming merges "pâtes"
+ * and "pâté", but "pates" is only a word in one of those names.
  */
-export function rankFoods<T extends { _id: string; searchText: string; offScans?: number }>(
-  foods: T[],
-  queryTerms: string[],
-  recentIds: Set<string>,
-): T[] {
+function typedMatch(name: string | undefined, typedWords: string[]): number {
+  if (!name || typedWords.length === 0) return NO_TYPED_MATCH;
+  const words = cleanText(name).split(" ");
+  if (!typedWords.every((word) => words.includes(word))) return NO_TYPED_MATCH;
+  return words[0] === typedWords[0] ? STARTS_WITH_TYPED : CONTAINS_TYPED;
+}
+
+/**
+ * Orders search results: the user's recent foods, then foods with every query term as a whole
+ * word, then foods matching by prefix, then the rest. Inside each group, names matching the words
+ * as typed come first, and `orderGroup` breaks ties.
+ */
+export function rankFoods<
+  T extends { _id: string; searchText: string; name?: string; source?: string; offScans?: number },
+>(foods: T[], queryTerms: string[], recentIds: Set<string>, query = ""): T[] {
+  const typedWords = cleanText(query).split(" ").filter(Boolean);
+  const orderByTypedMatch = (group: T[]) =>
+    [STARTS_WITH_TYPED, CONTAINS_TYPED, NO_TYPED_MATCH].flatMap((strength) =>
+      orderGroup(group.filter((food) => typedMatch(food.name, typedWords) === strength)),
+    );
+
   const recents: T[] = [];
-  const allTerms: T[] = [];
+  const exact: T[] = [];
+  const prefix: T[] = [];
   const rest: T[] = [];
   for (const food of foods) {
     if (recentIds.has(food._id)) recents.push(food);
-    else if (containsAllTerms(food.searchText, queryTerms)) allTerms.push(food);
+    else if (containsExactTerms(food.searchText, queryTerms)) exact.push(food);
+    else if (containsAllTerms(food.searchText, queryTerms)) prefix.push(food);
     else rest.push(food);
   }
-  return [...popularFirst(recents), ...popularFirst(allTerms), ...popularFirst(rest)];
+  return [recents, exact, prefix, rest].flatMap(orderByTypedMatch);
 }
