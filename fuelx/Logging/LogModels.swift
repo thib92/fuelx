@@ -75,6 +75,7 @@ nonisolated struct LogEntry: Decodable, Identifiable, Sendable {
     let name: String
     let brand: String?
     let grams: Double
+    let per100g: Per100g
     let kcal: Double
     let proteinG: Double
     let carbsG: Double
@@ -84,7 +85,12 @@ nonisolated struct LogEntry: Decodable, Identifiable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case meal, name, brand, grams, kcal, proteinG, carbsG, fatG, estimated, foodId
+        case meal, name, brand, grams, per100g, kcal, proteinG, carbsG, fatG, estimated, foodId
+    }
+
+    /// This entry's snapshot, in the shape `AmountView` edits.
+    var food: FoodResult {
+        FoodResult(id: id, name: name, brand: brand, per100g: per100g, servingG: nil)
     }
 }
 

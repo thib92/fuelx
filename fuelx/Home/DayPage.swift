@@ -13,6 +13,10 @@ struct DayPage: View {
     /// `nil` until the first result arrives; `.some(nil)` when signed out.
     @State private var dayEntries: DayEntries??
     @State private var addingTo: MealKind?
+    @State private var editing: LogEntry?
+    @State private var copying: Set<MealKind> = []
+    @State private var copied: Set<MealKind> = []
+    @State private var alertMessage: String?
 
     private var loadedEntries: DayEntries? { dayEntries ?? nil }
 
@@ -48,6 +52,27 @@ struct DayPage: View {
         .sheet(item: $addingTo) { meal in
             AddFoodSheet(day: day, meal: meal)
         }
+        .sheet(item: $editing) { entry in
+            NavigationStack {
+                AmountView(food: entry.food, initialGrams: entry.grams, primaryTitle: "Save") { grams in
+                    try await convex.mutation("logs:update", with: ["id": entry.id, "grams": grams])
+                    editing = nil
+                }
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(role: .close) { editing = nil }
+                    }
+                }
+            }
+        }
+        .alert(
+            "Something Went Wrong",
+            isPresented: Binding(get: { alertMessage != nil }, set: { if !$0 { alertMessage = nil } })
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(alertMessage ?? "")
+        }
         .task(id: day) {
             let updates = convex.subscribe(
                 to: "nutrition:targetsForDay",
@@ -76,8 +101,24 @@ struct DayPage: View {
         let entries = loadedEntries?.entries(for: meal) ?? []
         let totals = loadedEntries?.mealTotals[meal]
         return Section {
-            ForEach(entries) { LogEntryRow(entry: $0) }
-            Button("Add Food", systemImage: "plus") { addingTo = meal }
+            ForEach(entries) { entry in
+                Button { editing = entry } label: { LogEntryRow(entry: entry) }
+                    .buttonStyle(.plain)
+                    .swipeActions {
+                        Button("Delete", systemImage: "trash", role: .destructive) { delete(entry) }
+                    }
+            }
+            HStack {
+                Button("Add Food", systemImage: "plus") { addingTo = meal }
+                    .buttonStyle(.borderless)
+                Spacer()
+                Menu("More", systemImage: "ellipsis") {
+                    Button("Copy from Yesterday", systemImage: "doc.on.doc") { copyFromYesterday(meal) }
+                        .disabled(copying.contains(meal) || copied.contains(meal))
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+            }
         } header: {
             SectionHeader(
                 title: Text(meal.label),
@@ -86,6 +127,39 @@ struct DayPage: View {
             if let totals, !entries.isEmpty {
                 Text("Protein \(totals.proteinG.grams) · Carbs \(totals.carbsG.grams) · Fat \(totals.fatG.grams)")
                     .monospacedDigit()
+            }
+        }
+    }
+
+    private func delete(_ entry: LogEntry) {
+        Task {
+            do {
+                try await convex.mutation("logs:remove", with: ["id": entry.id])
+            } catch {
+                alertMessage = error.convexMessage
+            }
+        }
+    }
+
+    /// Runs once per meal and day: the backend would happily add the same entries twice.
+    private func copyFromYesterday(_ meal: MealKind) {
+        guard let yesterday = Days.calendar.date(byAdding: .day, value: -1, to: day) else { return }
+        copying.insert(meal)
+        Task {
+            defer { copying.remove(meal) }
+            do {
+                let count: Double = try await convex.mutation("logs:copyMeal", with: [
+                    "fromDay": Days.key(for: yesterday),
+                    "toDay": Days.key(for: day),
+                    "meal": meal.rawValue,
+                ])
+                if count > 0 {
+                    copied.insert(meal)
+                } else {
+                    alertMessage = String(localized: "Nothing to copy.")
+                }
+            } catch {
+                alertMessage = error.convexMessage
             }
         }
     }

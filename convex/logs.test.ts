@@ -127,6 +127,13 @@ describe("logs:forDay", () => {
     expect(log?.mealTotals.dinner.kcal).toBe(0);
   });
 
+  test("entries include their nutrition snapshot, for editing the amount", async () => {
+    const { alice, foodId } = await setup();
+    await alice.mutation(api.logs.add, addArgs(foodId));
+    const log = await alice.query(api.logs.forDay, { day: DAY });
+    expect(log?.entries[0].per100g).toEqual(per100g);
+  });
+
   test("entries are private to their owner", async () => {
     const { alice, bob, foodId } = await setup();
     await alice.mutation(api.logs.add, addArgs(foodId));

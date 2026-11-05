@@ -13,10 +13,13 @@ struct AddFoodSheet: View {
     /// `nil` until the current query has results.
     @State private var results: [FoodResult]?
     @State private var errorMessage: String?
+    @State private var path: [Route] = []
+    @State private var repeating: Set<String> = []
+    @State private var repeated: Set<String> = []
 
-    private struct Selection: Hashable {
-        let food: FoodResult
-        let grams: Double
+    private enum Route: Hashable {
+        case amount(FoodResult, grams: Double)
+        case customFood(name: String)
     }
 
     private static let searchDelay: Duration = .milliseconds(250)
@@ -25,12 +28,15 @@ struct AddFoodSheet: View {
     private var trimmedQuery: String { query.trimmingCharacters(in: .whitespaces) }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 if trimmedQuery.isEmpty {
                     recentsSection
                 } else {
                     resultsSection
+                }
+                NavigationLink(value: Route.customFood(name: trimmedQuery)) {
+                    Label("Create a Food", systemImage: "square.and.pencil")
                 }
                 if let errorMessage {
                     Text(errorMessage).foregroundStyle(.red)
@@ -47,10 +53,17 @@ struct AddFoodSheet: View {
                     Button(role: .close) { dismiss() }
                 }
             }
-            .navigationDestination(for: Selection.self) { selection in
-                AmountView(food: selection.food, initialGrams: selection.grams, primaryTitle: "Add") { grams in
-                    try await add(selection.food, grams: grams, origin: "search")
-                    dismiss()
+            .navigationDestination(for: Route.self) { route in
+                switch route {
+                case .amount(let food, let grams):
+                    AmountView(food: food, initialGrams: grams, primaryTitle: "Add") { grams in
+                        try await add(food, grams: grams, origin: "search")
+                        dismiss()
+                    }
+                case .customFood(let name):
+                    CustomFoodForm(name: name) { food in
+                        path = [.amount(food, grams: food.servingG ?? Self.defaultGrams)]
+                    }
                 }
             }
         }
@@ -63,10 +76,38 @@ struct AddFoodSheet: View {
         if !recents.isEmpty {
             Section("Recent") {
                 ForEach(recents) { recent in
-                    NavigationLink(value: Selection(food: recent.food, grams: recent.lastGrams)) {
-                        FoodRow(food: recent.food)
+                    HStack {
+                        NavigationLink(value: Route.amount(recent.food, grams: recent.lastGrams)) {
+                            FoodRow(food: recent.food)
+                        }
+                        repeatButton(for: recent)
                     }
                 }
+            }
+        }
+    }
+
+    /// Adds the food again with its last amount, without leaving the sheet.
+    private func repeatButton(for recent: RecentFood) -> some View {
+        let isDone = repeated.contains(recent.foodId)
+        return Button("Add \(recent.lastGrams.grams)", systemImage: isDone ? "checkmark" : "plus.circle") {
+            repeatFood(recent)
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        .disabled(repeating.contains(recent.foodId))
+    }
+
+    private func repeatFood(_ recent: RecentFood) {
+        repeating.insert(recent.foodId)
+        errorMessage = nil
+        Task {
+            defer { repeating.remove(recent.foodId) }
+            do {
+                try await add(recent.food, grams: recent.lastGrams, origin: "recent")
+                repeated.insert(recent.foodId)
+            } catch {
+                errorMessage = error.convexMessage
             }
         }
     }
@@ -78,7 +119,7 @@ struct AddFoodSheet: View {
                 ContentUnavailableView.search(text: trimmedQuery)
             }
             ForEach(results) { food in
-                NavigationLink(value: Selection(food: food, grams: defaultGrams(for: food))) {
+                NavigationLink(value: Route.amount(food, grams: defaultGrams(for: food))) {
                     FoodRow(food: food)
                 }
             }
