@@ -79,6 +79,11 @@ export function isInRange(per100g: Per100g): boolean {
   );
 }
 
+/** Rule 2. */
+export function isValidBarcode(barcode: string): boolean {
+  return BARCODE_PATTERN.test(barcode);
+}
+
 function caloriesMatch(per100g: Per100g, alcoholPct?: number): boolean {
   const expected = expectedKcal(per100g, alcoholPct);
   const allowedGap = Math.max(MAX_KCAL_GAP, MAX_KCAL_GAP_FRACTION * Math.max(per100g.kcal, expected));
@@ -92,11 +97,31 @@ export function isPlausible(per100g: Per100g, alcoholPct?: number): boolean {
 
 /** Rules 2, 3, 5 and 6, in that order. */
 export function checkFood(food: FoodCandidate): FoodCheck {
-  if (!BARCODE_PATTERN.test(food.barcode)) return { ok: false, rule: "barcode" };
+  if (!isValidBarcode(food.barcode)) return { ok: false, rule: "barcode" };
   if (cleanText(food.name).replace(/ /g, "").length < MIN_NAME_LENGTH) {
     return { ok: false, rule: "name" };
   }
   if (!isInRange(food.per100g)) return { ok: false, rule: "range" };
   if (!caloriesMatch(food.per100g, food.alcoholPct)) return { ok: false, rule: "calories" };
   return { ok: true };
+}
+
+export function round(value: number, decimals: number): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+/** Rounds to what we store, leaving out nutrients the source doesn't have. */
+export function roundPer100g(values: Per100g): Per100g {
+  const optional = (key: "sugarG" | "fiberG" | "saltG", decimals: number) =>
+    values[key] === undefined ? {} : { [key]: round(values[key], decimals) };
+  return {
+    kcal: round(values.kcal, 0),
+    proteinG: round(values.proteinG, 1),
+    carbsG: round(values.carbsG, 1),
+    fatG: round(values.fatG, 1),
+    ...optional("sugarG", 1),
+    ...optional("fiberG", 1),
+    ...optional("saltG", 2),
+  };
 }

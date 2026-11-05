@@ -1,8 +1,9 @@
-import { checkFood, expectedKcal, kcalFromKj, type Per100g } from "../../convex/lib/foodQuality";
+import { expectedKcal, roundPer100g, type Per100g } from "../../convex/lib/foodQuality";
 import { searchTextFor } from "../../convex/lib/foodSearch";
+import { offDoc, type OffRow } from "../../convex/lib/offProduct";
 import type { ImportDoc } from "../../convex/schema";
 
-const MAX_SERVING_G = 5000;
+export type { OffRow };
 
 /** CIQUAL constituent codes for the nutrients we keep. */
 const CIQUAL_NUTRIENTS: Record<string, keyof Per100g> = {
@@ -14,45 +15,6 @@ const CIQUAL_NUTRIENTS: Record<string, keyof Per100g> = {
   "34100": "fiberG",
   "10004": "saltG",
 };
-
-/** One line of the extract written by extract-off.sql. */
-export type OffRow = {
-  code: string;
-  name_fr: string | null;
-  name_main: string | null;
-  brands: string | null;
-  kcal: number | null;
-  kj: number | null;
-  proteins: number | null;
-  carbohydrates: number | null;
-  fat: number | null;
-  sugars: number | null;
-  fiber: number | null;
-  salt: number | null;
-  alcohol: number | null;
-  serving_quantity: string | null;
-  unique_scans_n: number | null;
-};
-
-function round(value: number, decimals: number): number {
-  const factor = 10 ** decimals;
-  return Math.round(value * factor) / factor;
-}
-
-/** Rounds to what we store, leaving out nutrients the source doesn't have. */
-function roundPer100g(values: Per100g): Per100g {
-  const optional = (key: "sugarG" | "fiberG" | "saltG", decimals: number) =>
-    values[key] === undefined ? {} : { [key]: round(values[key], decimals) };
-  return {
-    kcal: round(values.kcal, 0),
-    proteinG: round(values.proteinG, 1),
-    carbsG: round(values.carbsG, 1),
-    fatG: round(values.fatG, 1),
-    ...optional("sugarG", 1),
-    ...optional("fiberG", 1),
-    ...optional("saltG", 2),
-  };
-}
 
 /** CIQUAL writes `12,3`, `traces`, `< 0,5` (kept as the bound) and `-` for missing. */
 export function parseCiqualValue(raw: string): number | undefined {
@@ -125,42 +87,7 @@ export function ciqualFood(
 
 /** An OFF product, or null if it fails the import rules (spec rules 2-7). */
 export function offFood(row: OffRow): ImportDoc | null {
-  const name = (row.name_fr?.trim() || row.name_main?.trim()) ?? "";
-  const brand = row.brands?.split(",")[0].trim() || undefined;
-  const offScans = row.unique_scans_n || undefined;
-  if (!brand && !offScans) return null;
-
-  const kcal = row.kcal ?? (row.kj === null ? null : kcalFromKj(row.kj));
-  if (kcal === null || row.proteins === null || row.carbohydrates === null || row.fat === null) {
-    return null;
-  }
-  const per100g: Per100g = {
-    kcal,
-    proteinG: row.proteins,
-    carbsG: row.carbohydrates,
-    fatG: row.fat,
-    ...(row.sugars !== null && { sugarG: row.sugars }),
-    ...(row.fiber !== null && { fiberG: row.fiber }),
-    ...(row.salt !== null && { saltG: row.salt }),
-  };
-  const check = checkFood({
-    barcode: row.code,
-    name,
-    per100g,
-    alcoholPct: row.alcohol ?? undefined,
-  });
-  if (!check.ok) return null;
-
-  const servingG = Number(row.serving_quantity);
-  return {
-    source: "off",
-    sourceId: row.code,
-    barcode: row.code,
-    name,
-    ...(brand && { brand }),
-    searchText: searchTextFor({ name, brand }),
-    per100g: roundPer100g(per100g),
-    ...(servingG > 0 && servingG <= MAX_SERVING_G && { servingG: round(servingG, 1) }),
-    ...(offScans && { offScans }),
-  };
+  const hasBrand = Boolean(row.brands?.split(",")[0].trim());
+  if (!hasBrand && !row.unique_scans_n) return null;
+  return offDoc(row);
 }

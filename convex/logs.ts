@@ -151,7 +151,7 @@ export const add = mutation({
     meal: mealValidator,
     foodId: v.id("foods"),
     grams: v.number(),
-    origin: v.union(v.literal("search"), v.literal("recent")),
+    origin: v.union(v.literal("search"), v.literal("recent"), v.literal("barcode")),
   },
   returns: v.id("logEntries"),
   handler: async (ctx, { day, meal, foodId, grams, origin }) => {

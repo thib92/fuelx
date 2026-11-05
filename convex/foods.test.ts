@@ -255,3 +255,131 @@ describe("foods:importBatch", () => {
     expect(label).toMatchObject({ name: "Lu sur l'étiquette", per100g });
   });
 });
+
+describe("foods:lookupBarcode", () => {
+  const barcode = "3017620422003";
+  const nutella = {
+    product_name: "Nutella",
+    brands: "Nutella, Ferrero",
+    serving_quantity: "15",
+    nutriments: {
+      "energy-kcal_100g": 539,
+      proteins_100g: 6.3,
+      carbohydrates_100g: 57.5,
+      fat_100g: 30.9,
+      sugars_100g: 56.3,
+    },
+  };
+  const signedIn = (t: ReturnType<typeof convexTest>) => t.withIdentity({ subject: "user-1" });
+  const stubFetch = (response: () => Promise<Response>) => {
+    const fetchMock = vi.fn(response);
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  };
+  const okResponse = () => Promise.resolve(Response.json({ code: barcode, product: nutella }));
+
+  beforeEach(() => {
+    vi.stubEnv("OFF_USER_AGENT", "FuelX/test");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  test("refuses signed-out callers", async () => {
+    const t = convexTest(schema, modules);
+    await expect(t.action(api.foods.lookupBarcode, { barcode })).rejects.toThrow(/signed in/);
+  });
+
+  test("a malformed barcode is not found, without asking OFF", async () => {
+    const fetchMock = stubFetch(okResponse);
+    const t = convexTest(schema, modules);
+    const result = await signedIn(t).action(api.foods.lookupBarcode, { barcode: "12345" });
+    expect(result).toEqual({ status: "notFound" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test("a known food makes no OFF call, and a label beats OFF", async () => {
+    const fetchMock = stubFetch(okResponse);
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("foods", importDoc(barcode));
+      await ctx.db.insert("foods", {
+        ...importDoc(barcode),
+        source: "label",
+        name: "Skyr from the label",
+      });
+    });
+    const result = await signedIn(t).action(api.foods.lookupBarcode, { barcode });
+    expect(result.status === "found" && result.food.source).toBe("label");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test("saves a good OFF product once, sending the User-Agent", async () => {
+    const fetchMock = stubFetch(okResponse);
+    const t = convexTest(schema, modules);
+    const first = await signedIn(t).action(api.foods.lookupBarcode, { barcode });
+    const second = await signedIn(t).action(api.foods.lookupBarcode, { barcode });
+
+    expect(first).toMatchObject({
+      status: "found",
+      food: { name: "Nutella", brand: "Nutella", source: "off", servingG: 15 },
+    });
+    expect(second).toEqual(first);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toContain(`/product/${barcode}.json`);
+    expect(init.headers).toEqual({ "User-Agent": "FuelX/test" });
+    const foods = await t.run((ctx) => ctx.db.query("foods").collect());
+    expect(foods).toHaveLength(1);
+  });
+
+  test("saves a product with no brand or scans, since the barcode identifies it", async () => {
+    stubFetch(() =>
+      Promise.resolve(Response.json({ product: { ...nutella, brands: null } })),
+    );
+    const t = convexTest(schema, modules);
+    const result = await signedIn(t).action(api.foods.lookupBarcode, { barcode });
+    expect(result.status).toBe("found");
+  });
+
+  test("a product failing the quality rules is not found and not saved", async () => {
+    const bad = { ...nutella, nutriments: { ...nutella.nutriments, "energy-kcal_100g": 20 } };
+    stubFetch(() => Promise.resolve(Response.json({ product: bad })));
+    const t = convexTest(schema, modules);
+    const result = await signedIn(t).action(api.foods.lookupBarcode, { barcode });
+    expect(result).toEqual({ status: "notFound" });
+    expect(await t.run((ctx) => ctx.db.query("foods").collect())).toEqual([]);
+  });
+
+  test("OFF's 404 means not found", async () => {
+    stubFetch(() =>
+      Promise.resolve(Response.json({ status: 0 }, { status: 404 })),
+    );
+    const t = convexTest(schema, modules);
+    const result = await signedIn(t).action(api.foods.lookupBarcode, { barcode });
+    expect(result).toEqual({ status: "notFound" });
+  });
+
+  test.each([
+    ["a server error", () => Promise.resolve(new Response("", { status: 500 }))],
+    ["a rate limit", () => Promise.resolve(new Response("", { status: 429 }))],
+    ["a network failure", () => Promise.reject(new Error("offline"))],
+  ])("%s means unavailable", async (_, response) => {
+    stubFetch(response);
+    const t = convexTest(schema, modules);
+    const result = await signedIn(t).action(api.foods.lookupBarcode, { barcode });
+    expect(result).toEqual({ status: "unavailable" });
+  });
+
+  test("a missing User-Agent means unavailable, without asking OFF", async () => {
+    vi.stubEnv("OFF_USER_AGENT", "");
+    const fetchMock = stubFetch(okResponse);
+    const t = convexTest(schema, modules);
+    const result = await signedIn(t).action(api.foods.lookupBarcode, { barcode });
+    expect(result).toEqual({ status: "unavailable" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

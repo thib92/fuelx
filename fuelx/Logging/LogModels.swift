@@ -45,6 +45,16 @@ nonisolated struct FoodResult: Decodable, Hashable, Identifiable, Sendable {
     }
 }
 
+/// Returned by `foods:lookupBarcode`. `food` is set when `status` is `found`.
+nonisolated struct BarcodeLookup: Decodable, Sendable {
+    enum Status: String, Decodable, Sendable {
+        case found, notFound, unavailable
+    }
+
+    let status: Status
+    let food: FoodResult?
+}
+
 /// Returned by `logs:recents`.
 nonisolated struct RecentFood: Decodable, Identifiable, Sendable {
     let foodId: String

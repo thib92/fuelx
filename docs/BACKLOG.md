@@ -16,6 +16,13 @@ Nothing here is scheduled; it's a list to pick from.
 - **Per-environment URLs.** `fuelx/ConvexClient.swift` hardcodes the dev deployment URLs; drive
   them from the build configuration before a production build.
 
+## Barcode
+
+- **Label photo.** Deferred to meal logging phase 3, which adds the model pipeline it needs. Until
+  then, an unknown product offers a rescan or manual search.
+- **Device-side OFF lookups.** OFF allows 15 product reads/min per IP and all Convex calls probably
+  share one. Fine for friends; revisit before going public.
+
 ## Housekeeping
 
 - The `SITE_URL` env var on the Convex dev deployment is unused (`npx convex env remove SITE_URL`).

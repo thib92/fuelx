@@ -15,6 +15,7 @@ import type * as lib_foodQuality from "../lib/foodQuality.js";
 import type * as lib_foodSearch from "../lib/foodSearch.js";
 import type * as lib_logMath from "../lib/logMath.js";
 import type * as lib_nutritionTargets from "../lib/nutritionTargets.js";
+import type * as lib_offProduct from "../lib/offProduct.js";
 import type * as logs from "../logs.js";
 import type * as nutrition from "../nutrition.js";
 import type * as profile from "../profile.js";
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   "lib/foodSearch": typeof lib_foodSearch;
   "lib/logMath": typeof lib_logMath;
   "lib/nutritionTargets": typeof lib_nutritionTargets;
+  "lib/offProduct": typeof lib_offProduct;
   logs: typeof logs;
   nutrition: typeof nutrition;
   profile: typeof profile;
