@@ -28,7 +28,7 @@ struct HomeView: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(days, id: \.self) { day in
-                            DayPage(day: day, workouts: MockDayLogs.workouts(for: day)) { isShowingProfile = true }
+                            DayPage(day: day) { isShowingProfile = true }
                                 .containerRelativeFrame(.horizontal)
                         }
                     }
@@ -89,8 +89,12 @@ struct HomeView: View {
             }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { rollOverToNewDay() }
+            if phase == .active {
+                rollOverToNewDay()
+                Task { await HealthSync.shared.sync() }
+            }
         }
+        .task { await HealthSync.shared.sync() }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             rollOverToNewDay()
         }

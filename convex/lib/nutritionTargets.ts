@@ -1,9 +1,10 @@
 /**
  * Daily calorie and macro targets.
  *
- * - Calories: Mifflin-St Jeor BMR x activity factor, adjusted for a weight goal.
- *   The activity factor covers everyday (non-exercise) activity only; workouts are
- *   ignored for now and will be added on top of maintenance once they're connected.
+ * - Calories: Mifflin-St Jeor BMR plus everyday activity, adjusted for a weight goal.
+ *   Everyday activity comes from a watch's steps when there are any, otherwise from the
+ *   activity factor. Neither includes workouts, which are ignored for now and will be
+ *   added on top of maintenance once they're connected.
  * - Protein: fixed g/kg of body weight.
  * - Fat: fixed share of calories.
  * - Carbs: the remaining calories.
@@ -33,8 +34,10 @@ export interface NutritionTargets {
   day: string;
   age: number;
   bmr: number;
-  /** BMR x activity factor: calories to maintain weight, excluding workouts. */
+  /** Calories to maintain weight, excluding workouts. */
   maintenanceCalories: number;
+  /** The everyday steps behind `maintenanceCalories`. Absent when the activity factor was used. */
+  stepsUsed?: number;
   /** calories - maintenanceCalories (negative when losing). */
   goalAdjustment: number;
   calories: number;
@@ -60,6 +63,14 @@ export const ACTIVITY_FACTORS: Record<ActivityLevel, number> = {
   light: 1.35, // on your feet part of the day, e.g. teacher, retail
   moderate: 1.5, // on your feet or doing physical work most of the day
 };
+
+/** Steps a sedentary day already includes, so the sedentary factor is the base for steps. */
+export const BASELINE_STEPS = 2500;
+/**
+ * Net walking cost: about 2.5 kcal/kg/h above rest at 4.8 km/h (3.5 METs), at 1,300 steps/km.
+ * An estimate, like the activity factors. 10,000 extra steps at 70 kg is 280 kcal.
+ */
+export const KCAL_PER_STEP_PER_KG = 0.0004;
 
 /** Allowed weekly rates per goal, in kg/week. */
 export const GOAL_RATES: Record<Goal, readonly number[]> = {
@@ -122,13 +133,37 @@ export function mifflinStJeor(input: {
   return input.sex === "male" ? base + 5 : base - 161;
 }
 
+/** A day's steps, without workouts. */
+export interface StepsInput {
+  everydaySteps: number;
+  /** The day isn't over, so the count is still low. */
+  inProgress: boolean;
+}
+
+function maintenanceFor(
+  profile: NutritionProfile,
+  bmr: number,
+  steps: StepsInput | undefined,
+): { maintenance: number; stepsUsed?: number } {
+  const fromFactor = bmr * ACTIVITY_FACTORS[profile.activityLevel];
+  if (!steps) return { maintenance: fromFactor };
+
+  const extraSteps = Math.max(0, steps.everydaySteps - BASELINE_STEPS);
+  const fromSteps =
+    bmr * ACTIVITY_FACTORS.sedentary + extraSteps * KCAL_PER_STEP_PER_KG * profile.weightKg;
+  // A morning's steps would make today's target start low and climb all day.
+  if (steps.inProgress && fromSteps < fromFactor) return { maintenance: fromFactor };
+  return { maintenance: fromSteps, stepsUsed: Math.round(steps.everydaySteps) };
+}
+
 export function computeTargets(
   profile: NutritionProfile,
   day: string,
+  steps?: StepsInput,
 ): NutritionTargets {
   const age = ageOn(profile.birthDate, day);
   const bmr = mifflinStJeor({ ...profile, age });
-  const maintenance = bmr * ACTIVITY_FACTORS[profile.activityLevel];
+  const { maintenance, stepsUsed } = maintenanceFor(profile, bmr, steps);
 
   const requestedRate = profile.goal === "maintain" ? 0 : profile.goalRateKgPerWeek;
   const rate =
@@ -155,6 +190,7 @@ export function computeTargets(
     age,
     bmr: Math.round(bmr),
     maintenanceCalories: Math.round(maintenance),
+    stepsUsed,
     goalAdjustment: calories - Math.round(maintenance),
     calories,
     proteinG,

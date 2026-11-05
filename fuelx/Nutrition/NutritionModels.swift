@@ -13,8 +13,8 @@ nonisolated enum Sex: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// Mirrors `activityLevelValidator` in convex/schema.ts. Everyday activity only: workouts
-/// don't count toward targets yet, and will be added on top once they're connected.
+/// Mirrors `activityLevelValidator` in convex/schema.ts. Everyday activity only, used when a
+/// day has no steps from a watch. Workouts don't count toward targets yet.
 nonisolated enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {
     case sedentary, light, moderate
     var id: Self { self }
@@ -74,8 +74,14 @@ nonisolated struct NutritionProfile: Decodable, Sendable {
 
 /// Returned by `nutrition:targetsForDay`. Numbers are Convex float64s, hence `Double`.
 nonisolated struct NutritionTargets: Decodable, Sendable {
+    /// Arguments for `nutrition:targetsForDay`. Only the app knows which day is today.
+    @MainActor static func queryArgs(for day: Date) -> [String: ConvexEncodable?] {
+        ["day": Days.key(for: day), "inProgress": Days.calendar.isDateInToday(day)]
+    }
+
     let calories: Double
     let maintenanceCalories: Double
+    let stepsUsed: Double?
     let goalAdjustment: Double
     let proteinG: Double
     let carbsG: Double

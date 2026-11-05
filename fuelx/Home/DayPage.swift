@@ -2,22 +2,26 @@ import Combine
 import ConvexMobile
 import SwiftUI
 
-/// One day's numbers: summary, targets, meals, and workouts with the fuel taken during them.
+/// One day's numbers: summary, targets, meals, and workouts.
 struct DayPage: View {
     let day: Date
-    let workouts: [Workout]
     let onSetUpProfile: () -> Void
 
     /// `nil` until the first result arrives; `.some(nil)` when there's no profile yet.
     @State private var targets: NutritionTargets??
     /// `nil` until the first result arrives; `.some(nil)` when signed out.
     @State private var dayEntries: DayEntries??
+    @State private var workoutDay: WorkoutDay?
     @State private var addingTo: MealKind?
 
     private var loadedEntries: DayEntries? { dayEntries ?? nil }
 
     private var log: DayLog {
-        DayLog(day: day, mealCalories: Int(loadedEntries?.totals.kcal ?? 0), workouts: workouts)
+        DayLog(
+            day: day,
+            mealCalories: Int(loadedEntries?.totals.kcal ?? 0),
+            workouts: workoutDay?.workouts ?? [],
+            steps: workoutDay?.steps.map(Int.init))
     }
 
     var body: some View {
@@ -35,7 +39,11 @@ struct DayPage: View {
             }
 
             Section {
-                if log.workouts.isEmpty {
+                if !HealthSync.shared.isConnected {
+                    Button("Connect Apple Health", systemImage: "heart") {
+                        Task { await HealthSync.shared.connect() }
+                    }
+                } else if log.workouts.isEmpty {
                     Label("Rest day", systemImage: "bed.double")
                         .foregroundStyle(.secondary)
                 }
@@ -53,7 +61,7 @@ struct DayPage: View {
         .task(id: day) {
             let updates = convex.subscribe(
                 to: "nutrition:targetsForDay",
-                with: ["day": Days.key(for: day)],
+                with: NutritionTargets.queryArgs(for: day),
                 yielding: NutritionTargets?.self)
             do {
                 for try await value in updates.values { targets = .some(value) }
@@ -70,6 +78,17 @@ struct DayPage: View {
                 for try await value in updates.values { dayEntries = .some(value) }
             } catch {
                 print("logs:forDay failed: \(error)")
+            }
+        }
+        .task(id: day) {
+            let updates = convex.subscribe(
+                to: "workouts:forDay",
+                with: ["day": Days.key(for: day)],
+                yielding: WorkoutDay?.self)
+            do {
+                for try await value in updates.values { workoutDay = value }
+            } catch {
+                print("workouts:forDay failed: \(error)")
             }
         }
     }
@@ -94,7 +113,7 @@ struct DayPage: View {
         switch targets {
         case .some(.some(let targets)):
             Section {
-                TargetsCard(targets: targets, caloriesEaten: log.caloriesIn, eaten: loadedEntries?.totals)
+                TargetsCard(targets: targets, caloriesEaten: log.mealCalories, eaten: loadedEntries?.totals)
             } header: {
                 Text("Daily Targets")
             } footer: {
@@ -150,14 +169,11 @@ struct DaySummary: View {
 
             Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 4) {
                 GridRow {
-                    stat("Eaten", log.caloriesIn, systemImage: "fork.knife")
-                    stat("Burned", log.caloriesBurned, systemImage: "flame")
-                }
-                GridRow {
-                    Text("Meals \(log.mealCalories.formatted()) · Fuel \(log.fuelCalories.formatted())")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                    stat("Eaten", log.mealCalories.kcal, systemImage: "fork.knife")
+                    stat("Burned", log.caloriesBurned.kcal, systemImage: "flame")
+                    if let steps = log.steps {
+                        stat("Steps", steps.formatted(), systemImage: "figure.walk")
+                    }
                 }
             }
         }
@@ -165,7 +181,7 @@ struct DaySummary: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func stat(_ title: LocalizedStringKey, _ value: Int, systemImage: String) -> some View {
+    private func stat(_ title: LocalizedStringKey, _ value: String, systemImage: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 4) {
                 Image(systemName: systemImage)
@@ -173,7 +189,7 @@ struct DaySummary: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
-            Text(value.kcal)
+            Text(value)
                 .font(.headline)
                 .monospacedDigit()
         }
@@ -214,58 +230,26 @@ private struct WorkoutRow: View {
     let workout: Workout
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(workout.title)
-                        Text("\(workout.sport.rawValue) · \(workout.duration.formatted(.units(allowed: [.hours, .minutes], width: .abbreviated)))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: workout.sport.systemImage)
-                }
-                Spacer()
-                Text("−\(workout.caloriesBurned.kcal)")
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-
-            if !workout.fuel.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("Fuel")
-                        Spacer()
-                        Text("+\(workout.fuelCalories.kcal)").monospacedDigit()
-                    }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
-                    ForEach(workout.fuel) { item in
-                        HStack {
-                            Image(systemName: "drop.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.tint)
-                            Text(item.name)
-                            Spacer()
-                            Text(item.time.formatted(date: .omitted, time: .shortened))
-                                .foregroundStyle(.secondary)
-                            Text(item.calories.kcal)
-                                .monospacedDigit()
-                                .frame(minWidth: 70, alignment: .trailing)
-                        }
+        HStack {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(workout.title)
+                    Text(workout.detail)
                         .font(.caption)
-                    }
+                        .foregroundStyle(.secondary)
                 }
-                .padding(10)
-                .background(.fill.quaternary, in: .rect(cornerRadius: 10))
+            } icon: {
+                Image(systemName: workout.sport.systemImage)
             }
+            Spacer()
+            Text("−\(workout.caloriesBurned.kcal)")
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
     }
 }
 
 #Preview {
-    DayPage(day: Days.today, workouts: MockDayLogs.workouts(for: Days.today), onSetUpProfile: {})
+    DayPage(day: Days.today, onSetUpProfile: {})
 }

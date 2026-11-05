@@ -45,16 +45,15 @@ Current: horizontal swipe between days + week strip + calendar jump + "Today" bu
    currently counts workouts only; add resting energy (HealthKit or an estimate) and a target,
    shown as a ring or progress bar.
 2. **Carbs per hour for fuel.** Endurance athletes plan fueling in g carbs/h (~60–90+ g/h) more
-   than kcal. Add carbs to `FuelItem` and show g/h on each workout.
+   than kcal. Add fuel logging on workouts and show g/h.
 3. **Week strip indicators.** A dot or mini bar per day for "logged" or "on target".
-4. **Quick add for workouts.** Buttons to log a workout or fuel. Later, import workouts and
-   calories burned from HealthKit.
+4. **Quick add for workouts.** Buttons to log a workout or fuel by hand.
 5. **Timeline view.** Interleave meals and workouts by time so eating around training is visible.
 
 ## Nutrition targets
 
-Current (2026-11-05): Mifflin-St Jeor BMR x non-exercise activity factor (sedentary 1.2 /
-light 1.35 / moderate 1.5; workouts ignored for now) ± goal (rate x 7,700 / 7 kcal/day, loss capped at 1% body weight/week, never below
+Current (2026-11-05): Mifflin-St Jeor BMR plus everyday activity, from watch steps when there are
+any and otherwise a factor (sedentary 1.2 / light 1.35 / moderate 1.5; workouts ignored for now) ± goal (rate x 7,700 / 7 kcal/day, loss capped at 1% body weight/week, never below
 BMR); protein fixed g/kg (default 1.6), fat fixed % of calories (default 25%), carbs = rest.
 Logic: `convex/lib/nutritionTargets.ts`.
 
@@ -64,8 +63,5 @@ Logic: `convex/lib/nutritionTargets.ts`.
 - **Carbs periodized by training load** (ACSM 2016: 3–5 / 5–7 / 6–10 / 8–12 g/kg) and per-workout
   fuel targets (Burke 2011 / Jeukendrup 2014: ~1 h small amounts, 30–60 g/h, >2.5 h up to 90 g/h).
 - **Fuel for tomorrow**: raise carbs the day before a planned key session.
-- **Macros per fuel item.** Meals show macros against targets; workout fuel doesn't yet.
-- **Mock fuel in totals.** `MockDayLogs` fuel still counts toward calories eaten until workouts
-  are real, so those totals are slightly off.
 - **Imperial units** (lb, ft/in) in the profile form; the backend stays metric.
 

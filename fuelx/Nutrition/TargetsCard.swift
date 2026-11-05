@@ -4,7 +4,7 @@ import SwiftUI
 struct TargetsCard: View {
     let targets: NutritionTargets
     let caloriesEaten: Int
-    /// Macros from logged entries. Workout fuel doesn't have macros yet.
+    /// Macros from logged entries.
     var eaten: NutritionTotals?
 
     private var target: Int { Int(targets.calories) }
@@ -69,6 +69,7 @@ struct TargetsFootnote: View {
     var body: some View {
         let notes = [
             String(localized: "Workouts aren't included yet."),
+            targets.stepsUsed.map { String(localized: "Everyday activity is based on \(Int($0).formatted()) steps, not counting runs and walks.") },
             targets.goalAdjustment == 0 ? nil
                 : targets.goalAdjustment < 0
                 ? String(localized: "Includes \(Int(-targets.goalAdjustment)) kcal less per day for weight loss.")

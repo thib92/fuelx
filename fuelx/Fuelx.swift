@@ -5,6 +5,7 @@ import SwiftUI
 
     init() {
         ConnectionMonitor.shared.start()
+        HealthSync.shared.startObserving()
     }
 
     var body: some Scene {

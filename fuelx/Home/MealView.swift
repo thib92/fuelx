@@ -110,7 +110,7 @@ struct MealView: View {
         .task(id: day) {
             let updates = convex.subscribe(
                 to: "nutrition:targetsForDay",
-                with: ["day": Days.key(for: day)],
+                with: NutritionTargets.queryArgs(for: day),
                 yielding: NutritionTargets?.self)
             do {
                 for try await value in updates.values { targets = value }
