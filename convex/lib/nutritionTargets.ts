@@ -159,6 +159,11 @@ function maintenanceFor(
   return { maintenance: fromSteps, stepsUsed: Math.round(steps.everydaySteps) };
 }
 
+/** The `bmr` of `computeTargets`, without working out the rest. */
+export function bmrOn(profile: NutritionProfile, day: string): number {
+  return Math.round(mifflinStJeor({ ...profile, age: ageOn(profile.birthDate, day) }));
+}
+
 export function computeTargets(
   profile: NutritionProfile,
   day: string,

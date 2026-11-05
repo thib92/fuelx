@@ -5,6 +5,7 @@ import SwiftUI
 /// Edits the inputs behind the daily calorie and macro targets (`profile:upsert`).
 struct ProfileForm: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthModel.self) private var auth
 
     @State private var sex: Sex?
     @State private var birthDate = Calendar.current.date(byAdding: .year, value: -30, to: .now) ?? .now
@@ -127,7 +128,11 @@ struct ProfileForm: View {
         }
         .disabled(isLoading)
         .overlay { if isLoading { ProgressView() } }
-        .task { await load() }
+        // Until there's a session, Convex answers as if there were no profile, and saving fails.
+        .task(id: auth.session) {
+            guard isLoading, auth.session != nil else { return }
+            await load()
+        }
     }
 
     private func measurementField(_ title: LocalizedStringKey, value: Binding<Double?>, unit: String) -> some View {
@@ -142,7 +147,6 @@ struct ProfileForm: View {
     }
 
     private func load() async {
-        defer { isLoading = false }
         do {
             for try await profile in convex.subscribe(to: "profile:get", yielding: NutritionProfile?.self).values {
                 if let profile { apply(profile) }
@@ -151,6 +155,8 @@ struct ProfileForm: View {
         } catch {
             errorMessage = error.convexMessage
         }
+        // Cancelled means the session changed, and the next load takes over.
+        if !Task.isCancelled { isLoading = false }
     }
 
     private func apply(_ profile: NutritionProfile) {
@@ -171,6 +177,7 @@ struct ProfileForm: View {
         errorMessage = nil
         defer { isSaving = false }
         do {
+            try await ConnectionMonitor.shared.ensureConnected()
             // Every number is sent as a Double: Swift Ints encode as Convex int64, which
             // `v.number()` rejects.
             try await convex.mutation("profile:upsert", with: [
@@ -193,4 +200,5 @@ struct ProfileForm: View {
 
 #Preview {
     NavigationStack { ProfileForm() }
+        .environment(AuthModel(client: convex, api: betterAuth))
 }

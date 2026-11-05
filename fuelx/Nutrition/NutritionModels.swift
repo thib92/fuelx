@@ -72,13 +72,24 @@ nonisolated struct NutritionProfile: Decodable, Sendable {
     let fatPercent: Double
 }
 
-/// Returned by `nutrition:targetsForDay`. Numbers are Convex float64s, hence `Double`.
-nonisolated struct NutritionTargets: Codable, Sendable {
-    /// Arguments for `nutrition:targetsForDay`. Only the app knows which day is today.
-    @MainActor static func queryArgs(for day: Date) -> [String: ConvexEncodable?] {
-        ["day": Days.key(for: day), "inProgress": Days.calendar.isDateInToday(day)]
+/// Returned by `nutrition:targetsForDay`, which is only `null` when signed out.
+nonisolated enum TargetsAnswer: Decodable, Sendable {
+    case noProfile
+    case targets(NutritionTargets)
+
+    private enum CodingKeys: String, CodingKey {
+        case noProfile
     }
 
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self = container.contains(.noProfile)
+            ? .noProfile : .targets(try NutritionTargets(from: decoder))
+    }
+}
+
+/// Numbers are Convex float64s, hence `Double`.
+nonisolated struct NutritionTargets: Codable, Sendable {
     let calories: Double
     let maintenanceCalories: Double
     let stepsUsed: Double?

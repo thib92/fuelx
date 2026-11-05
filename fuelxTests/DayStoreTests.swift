@@ -6,14 +6,16 @@ import Testing
 /// Hands out streams the test can push values through, and counts subscriptions.
 private final class FakeDayData: DayDataSource {
     var targetsStarted = 0
-    var targets: AsyncThrowingStream<NutritionTargets?, Error>.Continuation?
+    var targets: AsyncThrowingStream<TargetsAnswer?, Error>.Continuation?
+    var lastInProgress: Bool?
     var entries: AsyncThrowingStream<DayEntries?, Error>.Continuation?
     var workouts: AsyncThrowingStream<WorkoutDay?, Error>.Continuation?
     var progress: AsyncThrowingStream<[DayProgress]?, Error>.Continuation?
 
-    func targets(for day: Date) -> AsyncThrowingStream<NutritionTargets?, Error> {
+    func targets(for day: Date, inProgress: Bool) -> AsyncThrowingStream<TargetsAnswer?, Error> {
         targetsStarted += 1
-        let (stream, continuation) = AsyncThrowingStream<NutritionTargets?, Error>.makeStream()
+        lastInProgress = inProgress
+        let (stream, continuation) = AsyncThrowingStream<TargetsAnswer?, Error>.makeStream()
         targets = continuation
         return stream
     }
@@ -37,11 +39,11 @@ private final class FakeDayData: DayDataSource {
     }
 }
 
-private func sampleTargets(calories: Double = 2127) -> NutritionTargets {
-    NutritionTargets(
+private func sampleTargets(calories: Double = 2127) -> TargetsAnswer {
+    .targets(NutritionTargets(
         calories: calories, maintenanceCalories: 2402, stepsUsed: nil, goalAdjustment: -275,
         workoutCalories: 0, proteinG: 149, carbsG: 250, fatG: 59, carbsGPerKg: 2.7,
-        goalRateCapped: false, calorieFloorApplied: false, lowCarbs: true)
+        goalRateCapped: false, calorieFloorApplied: false, lowCarbs: true))
 }
 
 private func sampleEntries(kcal: Double) -> DayEntries {
@@ -71,9 +73,13 @@ private func settle() async {
     private let source = FakeDayData()
 
     private func makeStore(
-        fileURL: URL = tempFile(), stopDelay: Duration = .seconds(60)
+        fileURL: URL = tempFile(),
+        stopDelay: Duration = .seconds(60),
+        isToday: @escaping (Date) -> Bool = { _ in true }
     ) -> DayStore {
-        DayStore(source: source, fileURL: fileURL, saveDelay: .zero, stopDelay: stopDelay)
+        DayStore(
+            source: source, fileURL: fileURL, saveDelay: .zero, stopDelay: stopDelay,
+            retryDelay: .milliseconds(1), isToday: isToday)
     }
 
     @Test func saysLoadingBeforeAnyAnswer() {
@@ -127,7 +133,7 @@ private func settle() async {
     @Test func ignoresAnUnreadableFile() throws {
         let file = tempFile()
         try Data("not json".utf8).write(to: file)
-        #expect(makeStore(fileURL: file).days.isEmpty)
+        #expect(makeStore(fileURL: file).isEmpty)
     }
 
     @Test func missingEntriesAndWorkoutsKeepWhatIsKnown() async {
@@ -145,7 +151,7 @@ private func settle() async {
         view.cancel()
     }
 
-    @Test func noProfileReplacesCachedTargets() async {
+    @Test func signedOutKeepsCachedTargets() async {
         let store = makeStore()
         store.sessionDidChange(UUID())
         let view = Task { await store.watch(.day(day)) }
@@ -154,6 +160,52 @@ private func settle() async {
         source.targets?.yield(sampleTargets())
         await eventually { store.targets(for: day).loaded != nil }
         source.targets?.yield(nil)
+        await settle()
+        #expect(store.targets(for: day).loaded?.calories == 2127)
+        view.cancel()
+    }
+
+    @Test func aFailedSubscriptionComesBack() async {
+        let store = makeStore()
+        store.sessionDidChange(UUID())
+        let view = Task { await store.watch(.day(day)) }
+        await eventually { source.targets != nil }
+
+        source.targets?.finish(throwing: CancellationError())
+        await eventually { source.targetsStarted == 2 }
+        source.targets?.yield(sampleTargets())
+        await eventually { store.targets(for: day).loaded != nil }
+        view.cancel()
+    }
+
+    @Test func theDayStopsBeingInProgressAfterMidnight() async {
+        var isToday = true
+        let store = makeStore(isToday: { _ in isToday })
+        store.sessionDidChange(UUID())
+        let view = Task { await store.watch(.day(day)) }
+        await eventually { source.targets != nil }
+        #expect(source.lastInProgress == true)
+
+        store.todayDidChange()
+        await settle()
+        #expect(source.targetsStarted == 1)
+
+        isToday = false
+        store.todayDidChange()
+        await eventually { source.targetsStarted == 2 }
+        #expect(source.lastInProgress == false)
+        view.cancel()
+    }
+
+    @Test func noProfileReplacesCachedTargets() async {
+        let store = makeStore()
+        store.sessionDidChange(UUID())
+        let view = Task { await store.watch(.day(day)) }
+        await eventually { source.targets != nil }
+
+        source.targets?.yield(sampleTargets())
+        await eventually { store.targets(for: day).loaded != nil }
+        source.targets?.yield(.noProfile)
         await eventually { store[day].targets == nil }
         guard case .noProfile = store.targets(for: day) else {
             Issue.record("Expected no profile")
@@ -162,6 +214,21 @@ private func settle() async {
         source.targets?.yield(sampleTargets())
         await eventually { store.targets(for: day).loaded != nil }
         view.cancel()
+    }
+
+    @Test func noProfileForgetsProgress() async {
+        let store = makeStore()
+        store.sessionDidChange(UUID())
+        let week = Task { await store.watch(.progress(days: [day], today: day)) }
+        let page = Task { await store.watch(.day(day)) }
+        await eventually { source.progress != nil && source.targets != nil }
+
+        source.progress?.yield([DayProgress(day: Days.key(for: day), kcal: 100, targetKcal: 2000)])
+        await eventually { store[day].progress != nil }
+        source.targets?.yield(.noProfile)
+        await eventually { store[day].progress == nil }
+        week.cancel()
+        page.cancel()
     }
 
     @Test func viewsOfADayShareASubscription() async {
@@ -248,7 +315,7 @@ private func settle() async {
         store.clear()
         await settle()
         await store.flush()
-        #expect(store.days.isEmpty)
+        #expect(store.isEmpty)
         #expect(!FileManager.default.fileExists(atPath: file.path()))
     }
 
@@ -262,11 +329,13 @@ private func settle() async {
 
         source.progress?.yield(
             week.map { DayProgress(day: Days.key(for: $0), kcal: 100, targetKcal: 2000) })
-        await eventually { store.days.count == 20 }
+        await eventually { store[week[19]].progress != nil }
         await store.flush()
         view.cancel()
 
-        #expect(makeStore(fileURL: file).days.count == 14)
-        #expect(makeStore(fileURL: file)[day].progress != nil)
+        let restarted = makeStore(fileURL: file)
+        #expect(restarted[day].progress != nil)
+        #expect(restarted[week[13]].progress != nil)
+        #expect(restarted[week[14]].progress == nil)
     }
 }
