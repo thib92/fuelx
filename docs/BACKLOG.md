@@ -5,9 +5,9 @@ Nothing here is scheduled; it's a list to pick from.
 
 ## Auth (required before shipping)
 
-- **Migrate guest data on upgrade.** `onLinkAccount` in `convex/betterAuth/auth.ts` is a stub.
-  Once app tables exist, move the guest's rows to the Apple user. It also runs when the Apple
-  account already exists (returning user on a fresh install), so it must *merge*, not overwrite.
+- **Migrate guest data on upgrade.** `onLinkAccount` in `convex/betterAuth/auth.ts` moves the
+  guest's profile (`profile:transferOnLink`). Every new user-owned table needs the same, and it
+  must *merge*: it also runs when the Apple account already exists (returning user, fresh install).
 - **Account deletion (App Store Guideline 5.1.1(v)).** Apps that create accounts must offer
   in-app deletion; with Sign in with Apple that includes revoking Apple's tokens.
 - **Clean up orphaned guests.** Guests who uninstall leave unused users behind; add a Convex cron
@@ -42,6 +42,22 @@ Current: horizontal swipe between days + week strip + calendar jump + "Today" bu
 4. **Quick add.** Buttons to log a meal, a workout or fuel. Later, import workouts and calories
    burned from HealthKit.
 5. **Timeline view.** Interleave meals and workouts by time so eating around training is visible.
+
+## Nutrition targets
+
+Current (2026-11-05): Mifflin-St Jeor BMR x non-exercise activity factor (sedentary 1.2 /
+light 1.35 / moderate 1.5; workouts ignored for now) ± goal (rate x 7,700 / 7 kcal/day, loss capped at 1% body weight/week, never below
+BMR); protein fixed g/kg (default 1.6), fat fixed % of calories (default 25%), carbs = rest.
+Logic: `convex/lib/nutritionTargets.ts`.
+
+- **Count workouts.** Once workouts are connected, add each day's logged/planned workout active
+  kcal on top of maintenance (the activity factors already exclude exercise, so nothing is
+  counted twice). Extra calories then flow into carbs automatically.
+- **Carbs periodized by training load** (ACSM 2016: 3–5 / 5–7 / 6–10 / 8–12 g/kg) and per-workout
+  fuel targets (Burke 2011 / Jeukendrup 2014: ~1 h small amounts, 30–60 g/h, >2.5 h up to 90 g/h).
+- **Fuel for tomorrow**: raise carbs the day before a planned key session.
+- **Macros per meal/fuel item**, so the day view can show protein/carbs/fat eaten vs. target.
+- **Imperial units** (lb, ft/in) in the profile form; the backend stays metric.
 
 ## Data layer notes
 

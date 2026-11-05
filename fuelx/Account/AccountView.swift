@@ -50,6 +50,16 @@ struct AccountView: View {
                     ProgressView().frame(maxWidth: .infinity)
                 }
 
+                Section {
+                    NavigationLink {
+                        ProfileForm()
+                    } label: {
+                        Label("Nutrition Profile", systemImage: "target")
+                    }
+                } footer: {
+                    Text("Your body, activity and weight goal set your daily targets.")
+                }
+
                 if let errorMessage {
                     Section {
                         Text(errorMessage).foregroundStyle(.red)

@@ -47,6 +47,21 @@ enum Days {
     }
 }
 
+extension Days {
+    /// "YYYY-MM-DD" for `day` in the user's time zone: how the backend identifies a day.
+    static func key(for day: Date) -> String {
+        let c = calendar.dateComponents([.year, .month, .day], from: day)
+        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+    }
+
+    /// Parses a "YYYY-MM-DD" key back into a start-of-day `Date`.
+    static func date(fromKey key: String) -> Date? {
+        let parts = key.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
+    }
+}
+
 extension Int {
     /// "1,234 kcal"
     var kcal: String { "\(formatted()) kcal" }
