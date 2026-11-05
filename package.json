@@ -20,6 +20,7 @@
     "@types/node": "^26.6.6",
     "auth": "~1.6.33",
     "convex-test": "^0.0.66",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^4.1.12"
   }
