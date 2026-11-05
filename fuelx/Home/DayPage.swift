@@ -1,5 +1,3 @@
-import Combine
-import ConvexMobile
 import SwiftUI
 
 /// One day: calories and macros against the target, meals, and activity.
@@ -7,27 +5,13 @@ struct DayPage: View {
     let day: Date
     let onSetUpProfile: () -> Void
 
-    @Environment(AuthModel.self) private var auth
-
-    /// `nil` until there's a cached or live result; `.some(nil)` when there's no profile yet.
-    @State private var targets: NutritionTargets??
-    @State private var entries: DayEntries?
-    @State private var workoutDay: WorkoutDay?
+    @Environment(\.dayStore) private var store
     @State private var addingTo: MealKind?
     @State private var isShowingTargetDetails = false
 
+    private var entries: DayEntries? { store[day].entries }
+    private var workoutDay: WorkoutDay? { store[day].workouts }
     private var workouts: [Workout] { workoutDay?.workouts ?? [] }
-    /// Restarts the queries on another day or session, and holds them until there is one.
-    private var liveDay: LiveDay { LiveDay(day: day, session: auth.session) }
-
-    init(day: Date, onSetUpProfile: @escaping () -> Void) {
-        self.day = day
-        self.onSetUpProfile = onSetUpProfile
-        let cached = DayCache.shared[day]
-        _targets = State(initialValue: cached?.targets.map { .some($0) })
-        _entries = State(initialValue: cached?.entries)
-        _workoutDay = State(initialValue: cached?.workouts)
-    }
 
     var body: some View {
         List {
@@ -52,57 +36,11 @@ struct DayPage: View {
             AddFoodSheet(day: day, meal: meal)
         }
         .sheet(isPresented: $isShowingTargetDetails) {
-            if case .some(.some(let targets)) = targets {
+            if let targets = store.targets(for: day).loaded {
                 TargetDetailsSheet(targets: targets, workouts: workouts)
             }
         }
-        .task(id: liveDay) {
-            guard auth.session != nil else { return }
-            let updates = convex.subscribe(
-                to: "nutrition:targetsForDay",
-                with: NutritionTargets.queryArgs(for: day),
-                yielding: NutritionTargets?.self)
-            do {
-                for try await value in updates.values {
-                    targets = .some(value)
-                    if let value { DayCache.shared.update(day) { $0.targets = value } }
-                }
-            } catch {
-                print("nutrition:targetsForDay failed: \(error)")
-            }
-        }
-        .task(id: liveDay) {
-            guard auth.session != nil else { return }
-            let updates = convex.subscribe(
-                to: "logs:forDay",
-                with: ["day": Days.key(for: day)],
-                yielding: DayEntries?.self)
-            do {
-                for try await value in updates.values {
-                    guard let value else { continue }
-                    entries = value
-                    DayCache.shared.update(day) { $0.entries = value }
-                }
-            } catch {
-                print("logs:forDay failed: \(error)")
-            }
-        }
-        .task(id: liveDay) {
-            guard auth.session != nil else { return }
-            let updates = convex.subscribe(
-                to: "workouts:forDay",
-                with: ["day": Days.key(for: day)],
-                yielding: WorkoutDay?.self)
-            do {
-                for try await value in updates.values {
-                    guard let value else { continue }
-                    workoutDay = value
-                    DayCache.shared.update(day) { $0.workouts = value }
-                }
-            } catch {
-                print("workouts:forDay failed: \(error)")
-            }
-        }
+        .task(id: day) { await store.watch(.day(day)) }
     }
 
     private func mealRow(_ meal: MealKind) -> some View {
@@ -130,10 +68,10 @@ struct DayPage: View {
 
     @ViewBuilder
     private var overviewSection: some View {
-        switch targets {
-        case .some(.some(let targets)):
+        switch store.targets(for: day) {
+        case .loaded(let targets):
             overview(targets)
-        case .some(.none):
+        case .noProfile:
             Section {
                 Button(action: onSetUpProfile) {
                     Label("Set Up Your Daily Targets", systemImage: "target")
@@ -141,7 +79,7 @@ struct DayPage: View {
             } footer: {
                 Text("Get calorie, protein, carb and fat targets based on your body and goal.")
             }
-        case .none:
+        case .loading:
             overview(.placeholder)
                 .redacted(reason: .placeholder)
                 .disabled(true)
@@ -187,11 +125,6 @@ struct DayPage: View {
             }
         }
     }
-}
-
-private struct LiveDay: Hashable {
-    let day: Date
-    let session: UUID?
 }
 
 private struct SectionTitle: View {
@@ -271,5 +204,4 @@ private struct WorkoutRow: View {
 
 #Preview {
     DayPage(day: Days.today, onSetUpProfile: {})
-        .environment(AuthModel(client: convex, api: betterAuth))
 }

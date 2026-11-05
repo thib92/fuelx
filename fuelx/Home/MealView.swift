@@ -1,4 +1,3 @@
-import Combine
 import ConvexMobile
 import SwiftUI
 
@@ -13,27 +12,16 @@ struct MealView: View {
     let day: Date
     let meal: MealKind
 
-    @Environment(AuthModel.self) private var auth
-
-    /// `nil` until there's a cached or live result, or without a profile.
-    @State private var targets: NutritionTargets?
-    /// `nil` until there's a cached or live result.
-    @State private var dayEntries: DayEntries?
+    @Environment(\.dayStore) private var store
     @State private var isAdding = false
     @State private var editing: LogEntry?
     @State private var isCopying = false
     @State private var isConfirmingCopy = false
     @State private var alertMessage: String?
 
+    private var targets: NutritionTargets? { store.targets(for: day).loaded }
+    private var dayEntries: DayEntries? { store[day].entries }
     private var entries: [LogEntry] { dayEntries?.entries(for: meal) ?? [] }
-
-    init(day: Date, meal: MealKind) {
-        self.day = day
-        self.meal = meal
-        let cached = DayCache.shared[day]
-        _targets = State(initialValue: cached?.targets)
-        _dayEntries = State(initialValue: cached?.entries)
-    }
 
     var body: some View {
         List {
@@ -127,32 +115,7 @@ struct MealView: View {
         } message: {
             Text(alertMessage ?? "")
         }
-        .task(id: auth.session) {
-            guard auth.session != nil else { return }
-            let updates = convex.subscribe(
-                to: "nutrition:targetsForDay",
-                with: NutritionTargets.queryArgs(for: day),
-                yielding: NutritionTargets?.self)
-            do {
-                for try await value in updates.values { targets = value }
-            } catch {
-                print("nutrition:targetsForDay failed: \(error)")
-            }
-        }
-        .task(id: auth.session) {
-            guard auth.session != nil else { return }
-            let updates = convex.subscribe(
-                to: "logs:forDay",
-                with: ["day": Days.key(for: day)],
-                yielding: DayEntries?.self)
-            do {
-                for try await value in updates.values {
-                    if let value { dayEntries = value }
-                }
-            } catch {
-                print("logs:forDay failed: \(error)")
-            }
-        }
+        .task(id: day) { await store.watch(.day(day)) }
     }
 
     private func delete(_ entry: LogEntry) {

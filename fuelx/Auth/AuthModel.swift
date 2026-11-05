@@ -27,18 +27,26 @@ final class AuthModel {
   private(set) var status = Status.loading
   /// Set once Convex accepts the session, and new for each session. Queries must wait for it,
   /// because until then Convex answers as if signed out: no profile, no entries.
-  private(set) var session: UUID?
+  private(set) var session: UUID? {
+    didSet { dayStore.sessionDidChange(session) }
+  }
 
   private let client: ConvexClientWithAuth<BetterAuthSession>
   private let api: BetterAuthAPI
+  private let dayStore: DayStore
   /// Set while deliberately replacing the session, so the auth observer doesn't react to it.
   private var isSwitchingSession = false
   private var retryTask: Task<Void, Never>?
   private var retryDelay = AuthModel.firstRetryDelay
 
-  init(client: ConvexClientWithAuth<BetterAuthSession>, api: BetterAuthAPI) {
+  init(
+    client: ConvexClientWithAuth<BetterAuthSession>,
+    api: BetterAuthAPI,
+    dayStore: DayStore = .shared
+  ) {
     self.client = client
     self.api = api
+    self.dayStore = dayStore
     Task { [weak self] in
       await self?.ensureSession()
       // A session can expire or be revoked while the app runs; fall back to a fresh guest.
@@ -100,7 +108,7 @@ final class AuthModel {
       apple, guestSessionToken: SessionTokenStore.read())
     await switchSession {
       try SessionTokenStore.save(sessionToken)
-      DayCache.shared.clear()
+      dayStore.clear()
       _ = try await client.login().get()
     }
   }
@@ -130,6 +138,6 @@ final class AuthModel {
 
   private func startGuestSession() async throws {
     try SessionTokenStore.save(try await api.signInAnonymously())
-    DayCache.shared.clear()
+    dayStore.clear()
   }
 }

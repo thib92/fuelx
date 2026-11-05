@@ -1,5 +1,3 @@
-import Combine
-import ConvexMobile
 import SwiftUI
 
 /// Swipeable week strip. Tapping a day selects it; swiping to another week selects the same
@@ -89,29 +87,7 @@ private struct WeekRow: View {
     let availableDays: ClosedRange<Date>
     let onSelect: (_ day: Date, _ animated: Bool) -> Void
 
-    @Environment(AuthModel.self) private var auth
-
-    /// Keyed by day. Empty while loading or without targets, which leaves the rings off.
-    @State private var progress: [String: DayProgress]
-
-    init(
-        weekStart: Date,
-        selectedDay: Date,
-        availableDays: ClosedRange<Date>,
-        onSelect: @escaping (_ day: Date, _ animated: Bool) -> Void
-    ) {
-        self.weekStart = weekStart
-        self.selectedDay = selectedDay
-        self.availableDays = availableDays
-        self.onSelect = onSelect
-        let cached = Days.week(containing: weekStart).compactMap { DayCache.shared[$0]?.progress }
-        _progress = State(initialValue: Dictionary(cached.map { ($0.day, $0) }) { _, last in last })
-    }
-
-    /// The last available day changes at midnight, and with it which day is in progress.
-    private var liveWeek: LiveWeek {
-        LiveWeek(lastDay: availableDays.upperBound, session: auth.session)
-    }
+    @Environment(\.dayStore) private var store
 
     var body: some View {
         HStack(spacing: 0) {
@@ -119,28 +95,11 @@ private struct WeekRow: View {
                 dayButton(day)
             }
         }
-        .task(id: liveWeek) {
-            guard auth.session != nil else { return }
-            let days: [ConvexEncodable?] = Days.week(containing: weekStart)
-                .filter(availableDays.contains)
-                .map(Days.key(for:))
+        // The last available day changes at midnight, and with it which day is in progress.
+        .task(id: availableDays.upperBound) {
+            let days = Days.week(containing: weekStart).filter(availableDays.contains)
             guard !days.isEmpty else { return }
-            let updates = convex.subscribe(
-                to: "nutrition:progressForDays",
-                with: ["days": days, "today": Days.key(for: availableDays.upperBound)],
-                yielding: [DayProgress]?.self)
-            do {
-                for try await value in updates.values {
-                    guard let value else { continue }
-                    progress = Dictionary(value.map { ($0.day, $0) }) { _, last in last }
-                    for item in value {
-                        guard let day = Days.date(fromKey: item.day) else { continue }
-                        DayCache.shared.update(day) { $0.progress = item }
-                    }
-                }
-            } catch {
-                print("nutrition:progressForDays failed: \(error)")
-            }
+            await store.watch(.progress(days: days, today: availableDays.upperBound))
         }
     }
 
@@ -170,7 +129,7 @@ private struct WeekRow: View {
                     }
                     .frame(width: 40, height: 40)
                     .overlay {
-                        if let fraction = progress[Days.key(for: day)]?.fraction {
+                        if let fraction = store[day].progress?.fraction {
                             DayProgressRing(fraction: fraction)
                         }
                     }
@@ -184,11 +143,6 @@ private struct WeekRow: View {
         .accessibilityLabel(Days.title(for: day))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
-}
-
-private struct LiveWeek: Hashable {
-    let lastDay: Date
-    let session: UUID?
 }
 
 private struct DayProgressRing: View {

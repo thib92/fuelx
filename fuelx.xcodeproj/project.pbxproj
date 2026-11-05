@@ -10,14 +10,30 @@
 		212B3738309653D4002A5C00 /* ConvexMobile in Frameworks */ = {isa = PBXBuildFile; productRef = 212B3737309653D4002A5C00 /* ConvexMobile */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		000000000000000200000080 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000100000000;
+			remoteInfo = fuelx;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* fuelx.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = fuelx.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000200000050 /* fuelxTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = fuelxTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		000000000000000000000010 /* fuelx */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = fuelx;
+			sourceTree = "<group>";
+		};
+		000000000000000200000060 /* fuelxTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = fuelxTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -29,6 +45,11 @@
 				212B3738309653D4002A5C00 /* ConvexMobile in Frameworks */,
 			);
 		};
+		000000000000000200000030 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -36,6 +57,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000010 /* fuelx */,
+				000000000000000200000060 /* fuelxTests */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -44,6 +66,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000120 /* fuelx.app */,
+				000000000000000200000050 /* fuelxTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -72,6 +95,27 @@
 			productReference = 000000000000000000000120 /* fuelx.app */;
 			productType = "com.apple.product-type.application";
 		};
+		000000000000000200000000 /* fuelxTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000200000010 /* Build configuration list for PBXNativeTarget "fuelxTests" */;
+			buildPhases = (
+				000000000000000200000020 /* Sources */,
+				000000000000000200000030 /* Frameworks */,
+				000000000000000200000040 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				000000000000000200000070 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				000000000000000200000060 /* fuelxTests */,
+			);
+			name = fuelxTests;
+			productName = fuelxTests;
+			productReference = 000000000000000200000050 /* fuelxTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -84,6 +128,10 @@
 				TargetAttributes = {
 					000000000000000100000000 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					000000000000000200000000 = {
+						CreatedOnToolsVersion = 27.1;
+						TestTargetID = 000000000000000100000000;
 					};
 				};
 			};
@@ -105,12 +153,18 @@
 			projectRoot = "";
 			targets = (
 				000000000000000100000000 /* fuelx */,
+				000000000000000200000000 /* fuelxTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		000000000000000140000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		000000000000000200000040 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -123,7 +177,20 @@
 			files = (
 			);
 		};
+		000000000000000200000020 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		000000000000000200000070 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000100000000 /* fuelx */;
+			targetProxy = 000000000000000200000080 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		000000000000000011000000 /* Debug configuration for PBXProject "fuelx" */ = {
@@ -342,6 +409,44 @@
 			};
 			name = Release;
 		};
+		000000000000000200000011 /* Debug configuration for PBXNativeTarget "fuelxTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = KSK6WGVE54;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.thenry.fuelxTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/fuelx.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/fuelx";
+			};
+			name = Debug;
+		};
+		000000000000000200000012 /* Release configuration for PBXNativeTarget "fuelxTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = KSK6WGVE54;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.thenry.fuelxTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/fuelx.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/fuelx";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -358,6 +463,14 @@
 			buildConfigurations = (
 				000000000000000111000000 /* Debug configuration for PBXNativeTarget "fuelx" */,
 				000000000000000112000000 /* Release configuration for PBXNativeTarget "fuelx" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		000000000000000200000010 /* Build configuration list for PBXNativeTarget "fuelxTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000200000011 /* Debug configuration for PBXNativeTarget "fuelxTests" */,
+				000000000000000200000012 /* Release configuration for PBXNativeTarget "fuelxTests" */,
 			);
 			defaultConfigurationName = Release;
 		};
