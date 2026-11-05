@@ -12,6 +12,7 @@ struct DayPage: View {
     @State private var targets: NutritionTargets??
     /// `nil` until the first result arrives; `.some(nil)` when signed out.
     @State private var dayEntries: DayEntries??
+    @State private var addingTo: MealKind?
 
     private var loadedEntries: DayEntries? { dayEntries ?? nil }
 
@@ -44,6 +45,9 @@ struct DayPage: View {
             }
         }
         .listStyle(.insetGrouped)
+        .sheet(item: $addingTo) { meal in
+            AddFoodSheet(day: day, meal: meal)
+        }
         .task(id: day) {
             let updates = convex.subscribe(
                 to: "nutrition:targetsForDay",
@@ -73,6 +77,7 @@ struct DayPage: View {
         let totals = loadedEntries?.mealTotals[meal]
         return Section {
             ForEach(entries) { LogEntryRow(entry: $0) }
+            Button("Add Food", systemImage: "plus") { addingTo = meal }
         } header: {
             SectionHeader(
                 title: Text(meal.label),

@@ -24,6 +24,43 @@ nonisolated enum MealKind: String, Codable, CaseIterable, Identifiable, Sendable
     }
 }
 
+nonisolated struct Per100g: Decodable, Hashable, Sendable {
+    let kcal: Double
+    let proteinG: Double
+    let carbsG: Double
+    let fatG: Double
+}
+
+/// Returned by `foods:search`.
+nonisolated struct FoodResult: Decodable, Hashable, Identifiable, Sendable {
+    let id: String
+    let name: String
+    let brand: String?
+    let per100g: Per100g
+    let servingG: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case name, brand, per100g, servingG
+    }
+}
+
+/// Returned by `logs:recents`.
+nonisolated struct RecentFood: Decodable, Identifiable, Sendable {
+    let foodId: String
+    let name: String
+    let brand: String?
+    let per100g: Per100g
+    let servingG: Double?
+    let lastGrams: Double
+
+    var id: String { foodId }
+
+    var food: FoodResult {
+        FoodResult(id: foodId, name: name, brand: brand, per100g: per100g, servingG: servingG)
+    }
+}
+
 /// Rounded by the backend: whole kcal, macros to 1 decimal.
 nonisolated struct NutritionTotals: Decodable, Sendable {
     let kcal: Double
