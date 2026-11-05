@@ -66,3 +66,8 @@ extension Int {
     /// "1,234 kcal"
     var kcal: String { "\(formatted()) kcal" }
 }
+
+extension Double {
+    /// "32.5 g"
+    var grams: String { "\(formatted(.number.precision(.fractionLength(0...1)))) g" }
+}

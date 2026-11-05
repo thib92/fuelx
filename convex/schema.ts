@@ -1,5 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { type Infer, v } from "convex/values";
 
 export const sexValidator = v.union(v.literal("male"), v.literal("female"));
 
@@ -32,10 +32,107 @@ export const profileInputFields = {
   fatPercent: v.number(),
 };
 
+/** Nutrition per 100 g. Sugar, fibre and salt are often missing from product data. */
+export const per100gValidator = v.object({
+  kcal: v.number(),
+  proteinG: v.number(),
+  carbsG: v.number(),
+  fatG: v.number(),
+  sugarG: v.optional(v.number()),
+  fiberG: v.optional(v.number()),
+  saltG: v.optional(v.number()),
+});
+
+export const foodSourceValidator = v.union(
+  v.literal("ciqual"),
+  v.literal("off"),
+  v.literal("label"),
+  v.literal("custom"),
+);
+
+const sharedFoodFields = {
+  /** CIQUAL code, barcode, or a generated id. */
+  sourceId: v.string(),
+  barcode: v.optional(v.string()),
+  name: v.string(),
+  /** CIQUAL only. */
+  nameEn: v.optional(v.string()),
+  brand: v.optional(v.string()),
+  /** From `searchTextFor` in lib/foodSearch.ts. */
+  searchText: v.string(),
+  per100g: per100gValidator,
+  servingG: v.optional(v.number()),
+  /** OFF's scan count. Only covers OFF's own apps, and is blank for many popular products. */
+  offScans: v.optional(v.number()),
+};
+
+/** What the import scripts send to `foods:importBatch`. */
+export const importDocValidator = v.object({
+  source: v.union(v.literal("ciqual"), v.literal("off")),
+  ...sharedFoodFields,
+});
+export type ImportDoc = Infer<typeof importDocValidator>;
+
+export const mealValidator = v.union(
+  v.literal("breakfast"),
+  v.literal("lunch"),
+  v.literal("dinner"),
+  v.literal("snack"),
+);
+export type MealName = Infer<typeof mealValidator>;
+
 export default defineSchema({
   profiles: defineTable({
     /** Better Auth user id (`identity.subject`). */
     userId: v.string(),
     ...profileInputFields,
   }).index("by_userId", ["userId"]),
+
+  foods: defineTable({
+    source: foodSourceValidator,
+    ...sharedFoodFields,
+    /** Set on "custom" foods, which are private to this user. */
+    ownerId: v.optional(v.string()),
+  })
+    .index("by_barcode", ["barcode"])
+    .index("by_source_sourceId", ["source", "sourceId"])
+    .searchIndex("search_text", {
+      searchField: "searchText",
+      filterFields: ["source", "ownerId"],
+    }),
+
+  recentFoods: defineTable({
+    userId: v.string(),
+    foodId: v.id("foods"),
+    lastUsedAt: v.number(),
+    useCount: v.number(),
+    lastGrams: v.number(),
+  })
+    .index("by_user_lastUsed", ["userId", "lastUsedAt"])
+    .index("by_user_food", ["userId", "foodId"]),
+
+  logEntries: defineTable({
+    userId: v.string(),
+    /** Local calendar date, "YYYY-MM-DD". */
+    day: v.string(),
+    meal: mealValidator,
+    loggedAt: v.number(),
+    /** Absent for AI-estimated items. */
+    foodId: v.optional(v.id("foods")),
+    /** Name, brand and nutrition are copied so food refreshes never change history. */
+    name: v.string(),
+    brand: v.optional(v.string()),
+    grams: v.number(),
+    per100g: per100gValidator,
+    origin: v.union(
+      v.literal("search"),
+      v.literal("recent"),
+      v.literal("barcode"),
+      v.literal("photo"),
+      v.literal("text"),
+      v.literal("copy"),
+    ),
+    /** True when values came from the model, not a database food. */
+    estimated: v.boolean(),
+  }).index("by_user_day", ["userId", "day"]),
 });

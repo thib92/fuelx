@@ -56,6 +56,11 @@ struct AccountView: View {
                     } label: {
                         Label("Nutrition Profile", systemImage: "target")
                     }
+                    NavigationLink {
+                        AboutView()
+                    } label: {
+                        Label("About", systemImage: "info.circle")
+                    }
                 } footer: {
                     Text("Your body, activity and weight goal set your daily targets.")
                 }

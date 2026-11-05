@@ -6,8 +6,9 @@ Nothing here is scheduled; it's a list to pick from.
 ## Auth (required before shipping)
 
 - **Migrate guest data on upgrade.** `onLinkAccount` in `convex/betterAuth/auth.ts` moves the
-  guest's profile (`profile:transferOnLink`). Every new user-owned table needs the same, and it
-  must *merge*: it also runs when the Apple account already exists (returning user, fresh install).
+  guest's profile and log data (`profile:transferOnLink`, `transferLogData` in `convex/logs.ts`).
+  Every new user-owned table needs the same, and it must *merge*: it also runs when the Apple
+  account already exists (returning user, fresh install).
 - **Account deletion (App Store Guideline 5.1.1(v)).** Apps that create accounts must offer
   in-app deletion; with Sign in with Apple that includes revoking Apple's tokens.
 - **Clean up orphaned guests.** Guests who uninstall leave unused users behind; add a Convex cron
@@ -39,8 +40,8 @@ Current: horizontal swipe between days + week strip + calendar jump + "Today" bu
 2. **Carbs per hour for fuel.** Endurance athletes plan fueling in g carbs/h (~60–90+ g/h) more
    than kcal. Add carbs to `FuelItem` and show g/h on each workout.
 3. **Week strip indicators.** A dot or mini bar per day for "logged" or "on target".
-4. **Quick add.** Buttons to log a meal, a workout or fuel. Later, import workouts and calories
-   burned from HealthKit.
+4. **Quick add for workouts.** Buttons to log a workout or fuel. Later, import workouts and
+   calories burned from HealthKit.
 5. **Timeline view.** Interleave meals and workouts by time so eating around training is visible.
 
 ## Nutrition targets
@@ -56,13 +57,8 @@ Logic: `convex/lib/nutritionTargets.ts`.
 - **Carbs periodized by training load** (ACSM 2016: 3–5 / 5–7 / 6–10 / 8–12 g/kg) and per-workout
   fuel targets (Burke 2011 / Jeukendrup 2014: ~1 h small amounts, 30–60 g/h, >2.5 h up to 90 g/h).
 - **Fuel for tomorrow**: raise carbs the day before a planned key session.
-- **Macros per meal/fuel item**, so the day view can show protein/carbs/fat eaten vs. target.
+- **Macros per fuel item.** Meals show macros against targets; workout fuel doesn't yet.
+- **Mock fuel in totals.** `MockDayLogs` fuel still counts toward calories eaten until workouts
+  are real, so those totals are slightly off.
 - **Imperial units** (lb, ft/in) in the profile form; the backend stays metric.
 
-## Data layer notes
-
-- **Key days by a local date string** (`"2026-10-31"` in the user's time zone), not timestamps,
-  so travel and DST don't move entries to the wrong day. Each visible `DayPage` can subscribe
-  to e.g. `logs:forDay({ day })`, replacing `MockDayLogs.log(for:)`.
-- **Midnight rollover.** `HomeView` computes "today" at launch; handle the day changing while
-  the app is open (`scenePhase` / significant time change).

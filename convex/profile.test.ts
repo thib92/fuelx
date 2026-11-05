@@ -72,6 +72,145 @@ describe("profile", () => {
   });
 });
 
+describe("transferOnLink with logged data", () => {
+  const per100g = { kcal: 110, proteinG: 23, carbsG: 0, fatG: 2 };
+  const DAY = "2026-11-05";
+
+  async function setup() {
+    const t = convexTest(schema, modules);
+    const foodId = await t.run((ctx) =>
+      ctx.db.insert("foods", {
+        source: "ciqual",
+        sourceId: "1",
+        name: "Poulet",
+        searchText: "poulet",
+        per100g,
+      }),
+    );
+    const add = { day: DAY, meal: "lunch" as const, foodId, origin: "search" as const };
+    return { t, foodId, add };
+  }
+
+  const link = { fromUserId: "guest", toUserId: "apple" };
+
+  test("moves entries even when the guest has no profile", async () => {
+    const { t, add } = await setup();
+    await t.withIdentity({ subject: "guest" }).mutation(api.logs.add, { ...add, grams: 150 });
+
+    await t.mutation(internal.profile.transferOnLink, link);
+
+    const apple = t.withIdentity({ subject: "apple" });
+    const log = await apple.query(api.logs.forDay, { day: DAY });
+    expect(log?.entries).toHaveLength(1);
+    const guest = t.withIdentity({ subject: "guest" });
+    expect((await guest.query(api.logs.forDay, { day: DAY }))?.entries).toEqual([]);
+  });
+
+  test("keeps the existing account's entries and adds the guest's", async () => {
+    const { t, add } = await setup();
+    await t.withIdentity({ subject: "guest" }).mutation(api.logs.add, { ...add, grams: 150 });
+    await t.withIdentity({ subject: "apple" }).mutation(api.logs.add, { ...add, grams: 200 });
+
+    await t.mutation(internal.profile.transferOnLink, link);
+
+    const log = await t.withIdentity({ subject: "apple" }).query(api.logs.forDay, { day: DAY });
+    expect(log?.entries.map((entry) => entry.grams).sort()).toEqual([150, 200]);
+  });
+
+  test("merges recents: latest date and grams, summed counts", async () => {
+    const { t, foodId } = await setup();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("recentFoods", {
+        userId: "guest",
+        foodId,
+        lastUsedAt: 200,
+        useCount: 2,
+        lastGrams: 80,
+      });
+      await ctx.db.insert("recentFoods", {
+        userId: "apple",
+        foodId,
+        lastUsedAt: 100,
+        useCount: 3,
+        lastGrams: 120,
+      });
+    });
+
+    await t.mutation(internal.profile.transferOnLink, link);
+
+    const recents = await t.run((ctx) => ctx.db.query("recentFoods").collect());
+    expect(recents).toHaveLength(1);
+    expect(recents[0]).toMatchObject({
+      userId: "apple",
+      lastUsedAt: 200,
+      useCount: 5,
+      lastGrams: 80,
+    });
+  });
+
+  test("merging keeps the account's grams when its recent is newer", async () => {
+    const { t, foodId } = await setup();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("recentFoods", {
+        userId: "guest",
+        foodId,
+        lastUsedAt: 100,
+        useCount: 1,
+        lastGrams: 80,
+      });
+      await ctx.db.insert("recentFoods", {
+        userId: "apple",
+        foodId,
+        lastUsedAt: 200,
+        useCount: 1,
+        lastGrams: 120,
+      });
+    });
+
+    await t.mutation(internal.profile.transferOnLink, link);
+
+    const [recent] = await t.run((ctx) => ctx.db.query("recentFoods").collect());
+    expect(recent).toMatchObject({ lastUsedAt: 200, lastGrams: 120 });
+  });
+
+  test("moves a recent the account doesn't have", async () => {
+    const { t, add } = await setup();
+    await t.withIdentity({ subject: "guest" }).mutation(api.logs.add, { ...add, grams: 150 });
+
+    await t.mutation(internal.profile.transferOnLink, link);
+
+    const recents = await t.withIdentity({ subject: "apple" }).query(api.logs.recents, {});
+    expect(recents.map((recent) => recent.name)).toEqual(["Poulet"]);
+  });
+
+  test("moves custom foods, which stay searchable by the new owner", async () => {
+    const { t } = await setup();
+    await t
+      .withIdentity({ subject: "guest" })
+      .mutation(api.foods.createCustom, { name: "Bowl maison", per100g });
+
+    await t.mutation(internal.profile.transferOnLink, link);
+
+    const apple = t.withIdentity({ subject: "apple" });
+    const found = await apple.query(api.foods.search, { query: "bowl" });
+    expect(found.map((food) => food.name)).toEqual(["Bowl maison"]);
+    const guest = t.withIdentity({ subject: "guest" });
+    expect(await guest.query(api.foods.search, { query: "bowl" })).toEqual([]);
+  });
+
+  test("leaves other users' custom foods alone", async () => {
+    const { t } = await setup();
+    await t
+      .withIdentity({ subject: "bob" })
+      .mutation(api.foods.createCustom, { name: "Bowl de bob", per100g });
+
+    await t.mutation(internal.profile.transferOnLink, link);
+
+    const bob = t.withIdentity({ subject: "bob" });
+    expect(await bob.query(api.foods.search, { query: "bowl" })).toHaveLength(1);
+  });
+});
+
 describe("nutrition.targetsForDay", () => {
   test("null without a profile; computed targets with one", async () => {
     const t = convexTest(schema, modules).withIdentity({ subject: "alice" });

@@ -14,6 +14,7 @@ import {
   parseDay,
   type NutritionProfile,
 } from "./lib/nutritionTargets";
+import { transferLogData } from "./logs";
 import { profileInputFields } from "./schema";
 
 const HEIGHT_CM_RANGE = { min: 100, max: 250 } as const;
@@ -70,11 +71,14 @@ export const upsert = mutation({
  * Called when a guest signs in with Apple (see `onLinkAccount` in betterAuth/auth.ts).
  * The guest's profile moves to the Apple account, unless that account already has one
  * (returning user on a fresh install), in which case the existing profile wins.
+ * Logged data always moves, including for guests who never set up a profile.
  */
 export const transferOnLink = internalMutation({
   args: { fromUserId: v.string(), toUserId: v.string() },
   returns: v.null(),
   handler: async (ctx, { fromUserId, toUserId }) => {
+    await transferLogData(ctx, fromUserId, toUserId);
+
     const guestProfile = await findProfile(ctx, fromUserId);
     if (!guestProfile) return null;
     if (await findProfile(ctx, toUserId)) {
