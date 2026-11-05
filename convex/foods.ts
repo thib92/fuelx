@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
-import { isPlausible } from "./lib/foodQuality";
+import { isInRange } from "./lib/foodQuality";
 import { normalizeTerms, rankFoods, searchTextFor } from "./lib/foodSearch";
 import {
   foodSourceValidator,
@@ -96,7 +96,8 @@ export const createCustom = mutation({
     if (name.length > MAX_NAME_LENGTH || (brand?.length ?? 0) > MAX_NAME_LENGTH) {
       throw new ConvexError(`Names can be up to ${MAX_NAME_LENGTH} characters.`);
     }
-    if (!isPlausible(per100g)) throw new ConvexError("Those values don't add up.");
+    // Range only: the calorie check would block drinks, whose energy comes from alcohol.
+    if (!isInRange(per100g)) throw new ConvexError("Those values don't add up.");
     if (servingG !== undefined && !(servingG > 0 && servingG <= MAX_SERVING_G)) {
       throw new ConvexError(`Serving size must be between 0 and ${MAX_SERVING_G} g.`);
     }

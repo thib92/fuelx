@@ -121,6 +121,16 @@ describe("foods:createCustom", () => {
     ).rejects.toThrow("values");
   });
 
+  test("accepts drinks whose calories come from alcohol", async () => {
+    const t = convexTest(schema, modules).withIdentity({ subject: "alice" });
+    await expect(
+      t.mutation(api.foods.createCustom, {
+        name: "Vin rouge",
+        per100g: { kcal: 85, proteinG: 0.1, carbsG: 2.6, fatG: 0 },
+      }),
+    ).resolves.toBeDefined();
+  });
+
   test("rejects a blank name", async () => {
     const t = convexTest(schema, modules).withIdentity({ subject: "alice" });
     await expect(t.mutation(api.foods.createCustom, { name: "  ", per100g })).rejects.toThrow(

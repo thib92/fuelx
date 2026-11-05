@@ -15,7 +15,7 @@ struct DayPage: View {
     @State private var addingTo: MealKind?
     @State private var editing: LogEntry?
     @State private var copying: Set<MealKind> = []
-    @State private var copied: Set<MealKind> = []
+    @State private var confirmingCopy: MealKind?
     @State private var alertMessage: String?
 
     private var loadedEntries: DayEntries? { dayEntries ?? nil }
@@ -65,6 +65,16 @@ struct DayPage: View {
                 }
             }
         }
+        .confirmationDialog(
+            "This meal already has food.",
+            isPresented: Binding(get: { confirmingCopy != nil }, set: { if !$0 { confirmingCopy = nil } }),
+            titleVisibility: .visible,
+            presenting: confirmingCopy
+        ) { meal in
+            Button("Copy Anyway") { copyFromYesterday(meal) }
+        } message: { _ in
+            Text("Yesterday's food will be added to what's already logged.")
+        }
         .alert(
             "Something Went Wrong",
             isPresented: Binding(get: { alertMessage != nil }, set: { if !$0 { alertMessage = nil } })
@@ -113,8 +123,8 @@ struct DayPage: View {
                     .buttonStyle(.borderless)
                 Spacer()
                 Menu("More", systemImage: "ellipsis") {
-                    Button("Copy from Yesterday", systemImage: "doc.on.doc") { copyFromYesterday(meal) }
-                        .disabled(copying.contains(meal) || copied.contains(meal))
+                    Button("Copy from Yesterday", systemImage: "doc.on.doc") { requestCopy(meal) }
+                        .disabled(copying.contains(meal))
                 }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
@@ -134,6 +144,7 @@ struct DayPage: View {
     private func delete(_ entry: LogEntry) {
         Task {
             do {
+                try await ConnectionMonitor.shared.ensureConnected()
                 try await convex.mutation("logs:remove", with: ["id": entry.id])
             } catch {
                 alertMessage = error.convexMessage
@@ -141,21 +152,28 @@ struct DayPage: View {
         }
     }
 
-    /// Runs once per meal and day: the backend would happily add the same entries twice.
+    /// The backend adds to a meal that already has food, so a repeat copy would double it.
+    private func requestCopy(_ meal: MealKind) {
+        if loadedEntries?.entries(for: meal).isEmpty == false {
+            confirmingCopy = meal
+        } else {
+            copyFromYesterday(meal)
+        }
+    }
+
     private func copyFromYesterday(_ meal: MealKind) {
         guard let yesterday = Days.calendar.date(byAdding: .day, value: -1, to: day) else { return }
         copying.insert(meal)
         Task {
             defer { copying.remove(meal) }
             do {
+                try await ConnectionMonitor.shared.ensureConnected()
                 let count: Double = try await convex.mutation("logs:copyMeal", with: [
                     "fromDay": Days.key(for: yesterday),
                     "toDay": Days.key(for: day),
                     "meal": meal.rawValue,
                 ])
-                if count > 0 {
-                    copied.insert(meal)
-                } else {
+                if count == 0 {
                     alertMessage = String(localized: "Nothing to copy.")
                 }
             } catch {

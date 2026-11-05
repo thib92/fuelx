@@ -104,6 +104,7 @@ struct AddFoodSheet: View {
         Task {
             defer { repeating.remove(recent.foodId) }
             do {
+                try await ConnectionMonitor.shared.ensureConnected()
                 try await add(recent.food, grams: recent.lastGrams, origin: "recent")
                 repeated.insert(recent.foodId)
             } catch {

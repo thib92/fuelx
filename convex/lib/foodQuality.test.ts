@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { checkFood, cleanText, expectedKcal, isPlausible, kcalFromKj } from "./foodQuality";
+import {
+  checkFood,
+  cleanText,
+  expectedKcal,
+  isInRange,
+  isPlausible,
+  kcalFromKj,
+} from "./foodQuality";
 
 const clean = {
   barcode: "3017620422003",
@@ -94,5 +101,26 @@ describe("helpers", () => {
 
   test("cleanText lowercases, strips accents and collapses punctuation", () => {
     expect(cleanText("  Crème-Brûlée, 100%! ")).toBe("creme brulee 100");
+  });
+
+  test.each([
+    ["Bœuf haché", "boeuf hache"],
+    ["ŒUF", "oeuf"],
+    ["cœur de laitue", "coeur de laitue"],
+    ["Lætitia", "laetitia"],
+    ["Æble", "aeble"],
+  ])("cleanText expands the ligature in %s", (input, want) => {
+    expect(cleanText(input)).toBe(want);
+  });
+
+  test("a ligature name keeps its full length for rule 3", () => {
+    expect(checkFood({ ...clean, name: "Œuf" }).ok).toBe(true);
+  });
+
+  test("isInRange ignores whether calories match the macros", () => {
+    const wine = { kcal: 85, proteinG: 0.1, carbsG: 2.6, fatG: 0 };
+    expect(isPlausible(wine)).toBe(false);
+    expect(isInRange(wine)).toBe(true);
+    expect(isInRange({ ...wine, fatG: 200 })).toBe(false);
   });
 });

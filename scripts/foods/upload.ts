@@ -1,6 +1,8 @@
 /**
  * Upserts foods.jsonl through foods:importBatch. See README.md.
  * After a failure, resume with: npx tsx scripts/foods/upload.ts <line number it printed>
+ * To upload another file, such as a few corrected foods, pass it second:
+ * npx tsx scripts/foods/upload.ts 0 scripts/foods/data/fixes.jsonl
  */
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
@@ -29,6 +31,7 @@ async function main() {
   if (!url || !secret) throw new Error("Set CONVEX_URL and FOODS_IMPORT_SECRET.");
 
   const startLine = Number(process.argv[2] ?? 0);
+  const file = process.argv[3] ?? "scripts/foods/data/foods.jsonl";
   const client = new ConvexHttpClient(url);
   const totals = { inserted: 0, updated: 0, unchanged: 0 };
   let batch: ImportDoc[] = [];
@@ -48,7 +51,7 @@ async function main() {
     console.log(`${lineNumber} lines: ${JSON.stringify(totals)}`);
   };
 
-  const lines = createInterface({ input: createReadStream("scripts/foods/data/foods.jsonl") });
+  const lines = createInterface({ input: createReadStream(file) });
   for await (const line of lines) {
     lineNumber += 1;
     if (lineNumber <= startLine) continue;

@@ -84,6 +84,7 @@ struct AmountView: View {
         Task {
             defer { isSaving = false }
             do {
+                try await ConnectionMonitor.shared.ensureConnected()
                 try await onSubmit(grams)
             } catch {
                 errorMessage = error.convexMessage

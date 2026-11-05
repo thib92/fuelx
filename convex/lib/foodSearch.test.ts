@@ -11,6 +11,10 @@ describe("normalizeTerms", () => {
     expect(normalizeTerms(input)).toEqual(want);
   });
 
+  test("both spellings of a ligature give the same term", () => {
+    expect(normalizeTerms("bœuf")).toEqual(normalizeTerms("boeuf"));
+  });
+
   test("returns nothing for punctuation", () => {
     expect(normalizeTerms("!!! ...")).toEqual([]);
   });

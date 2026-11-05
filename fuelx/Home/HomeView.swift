@@ -1,7 +1,10 @@
+import Combine
 import SwiftUI
 
 /// Browse days: swipe between them, tap the week strip, or jump with the calendar.
 struct HomeView: View {
+    @Environment(\.scenePhase) private var scenePhase
+
     /// Two years of history, oldest first, ending today.
     @State private var days = Days.lastDays(730)
     /// Drives the pager. Can be nil or pass through other days mid-scroll, so the UI reads
@@ -81,6 +84,22 @@ struct HomeView: View {
                     .presentationDragIndicator(.visible)
             }
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { rollOverToNewDay() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            rollOverToNewDay()
+        }
+    }
+
+    /// Adds today's page after midnight, so food isn't logged on yesterday by mistake. Someone
+    /// who was on "today" moves along with it; someone browsing an older day stays there.
+    private func rollOverToNewDay() {
+        let latest = Days.lastDays(days.count)
+        guard latest.last != days.last, let newToday = latest.last else { return }
+        let wasOnToday = isOnToday
+        days = latest
+        if wasOnToday { show(newToday, animated: false) }
     }
 
     private func show(_ day: Date, animated: Bool) {

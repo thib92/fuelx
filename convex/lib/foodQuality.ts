@@ -35,12 +35,17 @@ const ALCOHOL_G_PER_PCT = 0.789;
 const MAX_KCAL_GAP = 40;
 const MAX_KCAL_GAP_FRACTION = 0.3;
 
-/** Lowercases, strips accents, and turns everything but a-z and 0-9 into single spaces. */
+/**
+ * Lowercases, strips accents, expands ligatures, and turns everything but a-z and 0-9 into single
+ * spaces. Unicode normalisation leaves œ and æ alone, so "bœuf" needs mapping to match "boeuf".
+ */
 export function cleanText(text: string): string {
   return text
+    .toLowerCase()
+    .replace(/œ/g, "oe")
+    .replace(/æ/g, "ae")
     .normalize("NFKD")
     .replace(/\p{Mark}/gu, "")
-    .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
@@ -60,7 +65,8 @@ export function expectedKcal(per100g: Per100g, alcoholPct = 0): number {
   );
 }
 
-function inRange(per100g: Per100g): boolean {
+/** Rule 5: values a food could physically have. */
+export function isInRange(per100g: Per100g): boolean {
   const { kcal, proteinG, carbsG, fatG } = per100g;
   const macroInRange = (grams: number) => grams >= 0 && grams <= MAX_MACRO_G;
   return (
@@ -81,7 +87,7 @@ function caloriesMatch(per100g: Per100g, alcoholPct?: number): boolean {
 
 /** Rules 5 and 6: values in range, and calories that agree with the macros. */
 export function isPlausible(per100g: Per100g, alcoholPct?: number): boolean {
-  return inRange(per100g) && caloriesMatch(per100g, alcoholPct);
+  return isInRange(per100g) && caloriesMatch(per100g, alcoholPct);
 }
 
 /** Rules 2, 3, 5 and 6, in that order. */
@@ -90,7 +96,7 @@ export function checkFood(food: FoodCandidate): FoodCheck {
   if (cleanText(food.name).replace(/ /g, "").length < MIN_NAME_LENGTH) {
     return { ok: false, rule: "name" };
   }
-  if (!inRange(food.per100g)) return { ok: false, rule: "range" };
+  if (!isInRange(food.per100g)) return { ok: false, rule: "range" };
   if (!caloriesMatch(food.per100g, food.alcoholPct)) return { ok: false, rule: "calories" };
   return { ok: true };
 }

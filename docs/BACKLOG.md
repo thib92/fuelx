@@ -62,7 +62,3 @@ Logic: `convex/lib/nutritionTargets.ts`.
   are real, so those totals are slightly off.
 - **Imperial units** (lb, ft/in) in the profile form; the backend stays metric.
 
-## Data layer notes
-
-- **Midnight rollover.** `HomeView` computes "today" at launch; handle the day changing while
-  the app is open (`scenePhase` / significant time change).

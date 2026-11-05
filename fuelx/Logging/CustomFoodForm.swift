@@ -97,6 +97,7 @@ struct CustomFoodForm: View {
         Task {
             defer { isSaving = false }
             do {
+                try await ConnectionMonitor.shared.ensureConnected()
                 let id: String = try await convex.mutation("foods:createCustom", with: args)
                 onCreated(FoodResult(
                     id: id,
