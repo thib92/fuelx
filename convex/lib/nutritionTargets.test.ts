@@ -153,3 +153,40 @@ describe("computeTargets with steps", () => {
     expect(targets.stepsUsed).toBe(25000);
   });
 });
+
+describe("computeTargets with workouts", () => {
+  const day = "2026-11-04";
+  const rest = computeTargets(athlete, day);
+
+  test("adds workout calories to the day, all as carbs", () => {
+    const targets = computeTargets(athlete, day, undefined, 640);
+    expect(targets.workoutCalories).toBe(640);
+    expect(targets.calories).toBe(rest.calories + 640);
+    expect(targets.carbsG).toBe(rest.carbsG + 160);
+    expect(targets.fatG).toBe(rest.fatG);
+    expect(targets.proteinG).toBe(rest.proteinG);
+    expect(targets.goalAdjustment).toBe(rest.goalAdjustment);
+    expect(targets.maintenanceCalories).toBe(rest.maintenanceCalories);
+  });
+
+  test("past 12 g/kg of carbs, the rest goes to fat", () => {
+    const targets = computeTargets(athlete, day, undefined, 6000);
+    const carbsKcal = (840 - rest.carbsG) * 4;
+    expect(targets.calories).toBe(rest.calories + 6000);
+    expect(targets.carbsG).toBe(840);
+    expect(targets.fatG).toBe(rest.fatG + Math.round((6000 - carbsKcal) / 9));
+  });
+
+  test("the floor applies before workouts, so they always count", () => {
+    const loser = { ...athlete, activityLevel: "sedentary", goal: "lose", goalRateKgPerWeek: 0.5 } as const;
+    const base = computeTargets(loser, day);
+    expect(base.calorieFloorApplied).toBe(true);
+    expect(computeTargets(loser, day, undefined, 400).calories).toBe(base.calories + 400);
+  });
+
+  test("workouts can clear the low carbs flag", () => {
+    const low = { ...athlete, proteinGPerKg: 2, fatPercent: 35, activityLevel: "sedentary" } as const;
+    expect(computeTargets(low, day).lowCarbs).toBe(true);
+    expect(computeTargets(low, day, undefined, 800).lowCarbs).toBe(false);
+  });
+});

@@ -1,25 +1,14 @@
 import Foundation
 
-/// One calendar day's calorie balance.
-struct DayLog {
-    let day: Date
-    let mealCalories: Int
-    let workouts: [Workout]
-    let steps: Int?
-
-    var caloriesBurned: Int { workouts.reduce(0) { $0 + $1.caloriesBurned } }
-    var netCalories: Int { mealCalories - caloriesBurned }
-}
-
 /// Returned by `workouts:forDay`.
-nonisolated struct WorkoutDay: Decodable, Sendable {
+nonisolated struct WorkoutDay: Codable, Sendable {
     let workouts: [Workout]
     let steps: Double?
 }
 
-nonisolated struct Workout: Decodable, Identifiable, Sendable {
+nonisolated struct Workout: Codable, Identifiable, Sendable {
     /// Mirrors `sportValidator` in convex/schema.ts.
-    nonisolated enum Sport: String, Decodable, Sendable {
+    nonisolated enum Sport: String, Codable, Sendable {
         case run, ride, swim, strength, hike, walk, mobility, other
 
         var label: String {

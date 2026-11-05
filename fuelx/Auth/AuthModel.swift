@@ -16,20 +16,37 @@ final class AuthModel {
   enum Status: Equatable {
     case loading
     case signedIn
-    /// Couldn't restore or create a session (e.g. offline). Retry with ``ensureSession()``.
+    /// Couldn't create a first session (e.g. offline). Retry with ``ensureSession()``. A stored
+    /// session never ends up here: the app keeps showing cached days and retries by itself.
     case failed(String)
   }
 
+  private static let firstRetryDelay: Duration = .seconds(2)
+  private static let maxRetryDelay: Duration = .seconds(30)
+
   private(set) var status = Status.loading
+  /// Set once Convex accepts the session, and new for each session. Queries must wait for it,
+  /// because until then Convex answers as if signed out: no profile, no entries.
+  private(set) var session: UUID? {
+    didSet { dayStore.sessionDidChange(session) }
+  }
 
   private let client: ConvexClientWithAuth<BetterAuthSession>
   private let api: BetterAuthAPI
+  private let dayStore: DayStore
   /// Set while deliberately replacing the session, so the auth observer doesn't react to it.
   private var isSwitchingSession = false
+  private var retryTask: Task<Void, Never>?
+  private var retryDelay = AuthModel.firstRetryDelay
 
-  init(client: ConvexClientWithAuth<BetterAuthSession>, api: BetterAuthAPI) {
+  init(
+    client: ConvexClientWithAuth<BetterAuthSession>,
+    api: BetterAuthAPI,
+    dayStore: DayStore = .shared
+  ) {
     self.client = client
     self.api = api
+    self.dayStore = dayStore
     Task { [weak self] in
       await self?.ensureSession()
       // A session can expire or be revoked while the app runs; fall back to a fresh guest.
@@ -44,6 +61,9 @@ final class AuthModel {
 
   /// Restores the stored session, or starts a guest session if there is none.
   func ensureSession() async {
+    retryTask?.cancel()
+    retryTask = nil
+    session = nil
     status = .loading
     do {
       if SessionTokenStore.read() == nil {
@@ -57,9 +77,28 @@ final class AuthModel {
         result = await client.login()
       }
       _ = try result.get()
+      retryDelay = Self.firstRetryDelay
       status = .signedIn
+      session = UUID()
     } catch {
-      status = .failed(error.localizedDescription)
+      if SessionTokenStore.read() == nil {
+        status = .failed(error.localizedDescription)
+      } else {
+        retryLater()
+      }
+    }
+  }
+
+  /// The stored session survives network errors, so this only has to wait for a connection.
+  private func retryLater() {
+    let delay = retryDelay
+    retryDelay = min(delay * 2, Self.maxRetryDelay)
+    retryTask = Task { [weak self] in
+      try? await Task.sleep(for: delay)
+      guard !Task.isCancelled, let self else { return }
+      // `ensureSession()` cancels this task, which would cancel its own login.
+      retryTask = nil
+      await ensureSession()
     }
   }
 
@@ -69,6 +108,7 @@ final class AuthModel {
       apple, guestSessionToken: SessionTokenStore.read())
     await switchSession {
       try SessionTokenStore.save(sessionToken)
+      dayStore.clear()
       _ = try await client.login().get()
     }
   }
@@ -87,8 +127,10 @@ final class AuthModel {
   private func switchSession(_ body: () async throws -> Void) async {
     isSwitchingSession = true
     defer { isSwitchingSession = false }
+    session = nil
     do {
       try await body()
+      session = UUID()
     } catch {
       await ensureSession()
     }
@@ -96,5 +138,6 @@ final class AuthModel {
 
   private func startGuestSession() async throws {
     try SessionTokenStore.save(try await api.signInAnonymously())
+    dayStore.clear()
   }
 }

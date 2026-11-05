@@ -81,7 +81,7 @@ export const mealValidator = v.union(
 );
 export type MealName = Infer<typeof mealValidator>;
 
-/** Mirrors `Workout.Sport` in fuelx/Home/DayLog.swift. */
+/** Mirrors `Workout.Sport` in fuelx/Home/Workout.swift. */
 export const sportValidator = v.union(
   v.literal("run"),
   v.literal("ride"),

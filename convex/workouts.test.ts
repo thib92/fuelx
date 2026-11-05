@@ -196,6 +196,71 @@ describe("nutrition:targetsForDay with steps", () => {
     expect(today?.stepsUsed).toBeUndefined();
     expect(today!.calories).toBeGreaterThan(finished!.calories);
   });
+
+  test("adds workout calories to the day, matching the workout rows", async () => {
+    const rest = await withSteps({ steps: 8000 });
+    const ride = workout("ride", { sport: "ride", kcal: 640.4, basalKcal: 60 });
+    const targets = await withSteps({ steps: 8000 }, [ride]);
+    expect(targets?.workoutCalories).toBe(640);
+    expect(targets?.calories).toBe(rest!.calories + 640);
+    expect(targets?.carbsG).toBe(rest!.carbsG + 160);
+  });
+
+  test("counts a session recorded twice once", async () => {
+    const copy = { sport: "ride", kcal: 500, basalKcal: 60 };
+    const targets = await withSteps({ steps: 8000 }, [workout("a", copy), workout("b", copy)]);
+    expect(targets?.workoutCalories).toBe(500);
+  });
+});
+
+describe("nutrition:progressForDays", () => {
+  const profile = {
+    userId: "alice",
+    sex: "male" as const,
+    birthDate: "1990-01-01",
+    heightCm: 180,
+    weightKg: 70,
+    activityLevel: "moderate" as const,
+    goal: "maintain" as const,
+    goalRateKgPerWeek: 0,
+    proteinGPerKg: 1.6,
+    fatPercent: 25,
+  };
+  const args = { days: [DAY, "2026-11-05"], today: "2026-11-05" };
+
+  test("gives calories eaten and the target with workouts, per day", async () => {
+    const { t, alice } = setup();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("profiles", profile);
+      await ctx.db.insert("logEntries", {
+        userId: "alice",
+        day: DAY,
+        meal: "lunch",
+        name: "Rice",
+        grams: 200,
+        per100g: { kcal: 100, proteinG: 2, carbsG: 22, fatG: 0 },
+        loggedAt: START,
+        origin: "search",
+        estimated: false,
+      });
+    });
+    await alice.mutation(api.workouts.sync, syncArgs([workout("ride", { kcal: 300, basalKcal: 60 })]));
+    const [worked, rested] = (await alice.query(api.nutrition.progressForDays, args))!;
+    expect(worked).toMatchObject({ day: DAY, kcal: 200 });
+    expect(rested).toMatchObject({ day: "2026-11-05", kcal: 0 });
+    expect(worked.targetKcal).toBe(rested.targetKcal + 300);
+  });
+
+  test("is null without a profile", async () => {
+    const { alice } = setup();
+    expect(await alice.query(api.nutrition.progressForDays, args)).toBeNull();
+  });
+
+  test("refuses more than a week", async () => {
+    const { alice } = setup();
+    const days = Array.from({ length: 8 }, () => DAY);
+    await expect(alice.query(api.nutrition.progressForDays, { days, today: DAY })).rejects.toThrow("at most 7");
+  });
 });
 
 describe("guest upgrade", () => {

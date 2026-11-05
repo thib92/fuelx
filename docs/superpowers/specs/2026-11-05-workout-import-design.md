@@ -1,7 +1,7 @@
 # Workout import from Apple Health
 
 Replaces `MockDayLogs` with the user's real workouts and steps. Planned workouts from Intervals.icu
-are a later piece; so is adding workout calories to the daily targets.
+are a later piece. Workout calories are added to the daily targets, in `computeTargets`.
 
 ## Why Apple Health
 

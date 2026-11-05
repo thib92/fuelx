@@ -29,11 +29,12 @@ struct WeekStrip: View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
                 ForEach(weeks, id: \.self) { weekStart in
-                    HStack(spacing: 0) {
-                        ForEach(Days.week(containing: weekStart), id: \.self) { day in
-                            dayButton(day)
-                        }
-                    }
+                    WeekRow(
+                        weekStart: weekStart,
+                        selectedDay: selectedDay,
+                        availableDays: availableDays,
+                        onSelect: onSelect
+                    )
                     .padding(.horizontal)
                     .containerRelativeFrame(.horizontal)
                 }
@@ -77,6 +78,30 @@ struct WeekStrip: View {
         let day = Days.calendar.date(byAdding: .day, value: weekdayOffset, to: week) ?? week
         onSelect(min(max(day, availableDays.lowerBound), availableDays.upperBound), false)
     }
+}
+
+/// One week of days, each ringed by how much of its target was eaten.
+private struct WeekRow: View {
+    let weekStart: Date
+    let selectedDay: Date
+    let availableDays: ClosedRange<Date>
+    let onSelect: (_ day: Date, _ animated: Bool) -> Void
+
+    @Environment(\.dayStore) private var store
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Days.week(containing: weekStart), id: \.self) { day in
+                dayButton(day)
+            }
+        }
+        // The last available day changes at midnight, and with it which day is in progress.
+        .task(id: availableDays.upperBound) {
+            let days = Days.week(containing: weekStart).filter(availableDays.contains)
+            guard !days.isEmpty else { return }
+            await store.watch(.progress(days: days, today: availableDays.upperBound))
+        }
+    }
 
     private func dayButton(_ day: Date) -> some View {
         let isSelected = Days.calendar.isDate(day, inSameDayAs: selectedDay)
@@ -96,10 +121,16 @@ struct WeekStrip: View {
                     .foregroundStyle(
                         isSelected ? AnyShapeStyle(Color(.systemBackground))
                             : isToday ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 32, height: 32)
                     .background {
                         if isSelected {
                             Circle().fill(isToday ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                        }
+                    }
+                    .frame(width: 40, height: 40)
+                    .overlay {
+                        if let fraction = store[day].progress?.fraction {
+                            DayProgressRing(fraction: fraction)
                         }
                     }
             }
@@ -111,5 +142,23 @@ struct WeekStrip: View {
         .opacity(isAvailable ? 1 : 0.3)
         .accessibilityLabel(Days.title(for: day))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private struct DayProgressRing: View {
+    let fraction: Double
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Color(.systemFill), lineWidth: 2.5)
+            Circle()
+                .trim(from: 0, to: min(fraction, 1))
+                .stroke(
+                    fraction > 1 ? AnyShapeStyle(.red) : AnyShapeStyle(.tint),
+                    style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+        }
+        .padding(1.25)
     }
 }

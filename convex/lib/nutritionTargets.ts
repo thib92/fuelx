@@ -3,11 +3,10 @@
  *
  * - Calories: Mifflin-St Jeor BMR plus everyday activity, adjusted for a weight goal.
  *   Everyday activity comes from a watch's steps when there are any, otherwise from the
- *   activity factor. Neither includes workouts, which are ignored for now and will be
- *   added on top of maintenance once they're connected.
+ *   activity factor. Neither includes workouts, whose calories are added on top.
  * - Protein: fixed g/kg of body weight.
- * - Fat: fixed share of calories.
- * - Carbs: the remaining calories.
+ * - Fat: fixed share of calories before workouts.
+ * - Carbs: the remaining calories, plus workout calories up to 12 g/kg. Fat takes the rest.
  *
  * Pure and dependency-free so it can be unit tested and reused by any Convex function.
  */
@@ -38,8 +37,10 @@ export interface NutritionTargets {
   maintenanceCalories: number;
   /** The everyday steps behind `maintenanceCalories`. Absent when the activity factor was used. */
   stepsUsed?: number;
-  /** calories - maintenanceCalories (negative when losing). */
+  /** Calories added or removed for the goal (negative when losing). */
   goalAdjustment: number;
+  /** Active calories from the day's workouts, included in `calories`. */
+  workoutCalories: number;
   calories: number;
   proteinG: number;
   carbsG: number;
@@ -85,6 +86,8 @@ export const KCAL_PER_KG = 7700;
 export const MAX_WEEKLY_LOSS_FRACTION = 0.01;
 /** Lower bound of daily carbs for athletes (light training), in g/kg. */
 export const LOW_CARBS_G_PER_KG = 3;
+/** Top of sports nutrition guidelines (ACSM 2016): workouts only raise carbs this far. */
+export const MAX_CARBS_G_PER_KG = 12;
 
 export const PROTEIN_G_PER_KG_RANGE = { min: 1.2, max: 2.0 } as const;
 export const FAT_PERCENT_RANGE = { min: 20, max: 35 } as const;
@@ -160,6 +163,7 @@ export function computeTargets(
   profile: NutritionProfile,
   day: string,
   steps?: StepsInput,
+  workoutCalories = 0,
 ): NutritionTargets {
   const age = ageOn(profile.birthDate, day);
   const bmr = mifflinStJeor({ ...profile, age });
@@ -173,16 +177,21 @@ export function computeTargets(
   const direction = profile.goal === "lose" ? -1 : profile.goal === "gain" ? 1 : 0;
   const goalCalories = maintenance + (direction * rate * KCAL_PER_KG) / 7;
 
-  const calories = Math.round(Math.max(goalCalories, bmr));
+  const baseCalories = Math.round(Math.max(goalCalories, bmr));
   const proteinG = Math.round(profile.weightKg * profile.proteinGPerKg);
-  const fatG = Math.round((calories * profile.fatPercent) / 100 / KCAL_PER_G.fat);
-  const carbsG = Math.max(
+  const baseFatG = Math.round((baseCalories * profile.fatPercent) / 100 / KCAL_PER_G.fat);
+  const baseCarbsG = Math.max(
     0,
     Math.round(
-      (calories - proteinG * KCAL_PER_G.protein - fatG * KCAL_PER_G.fat) /
+      (baseCalories - proteinG * KCAL_PER_G.protein - baseFatG * KCAL_PER_G.fat) /
         KCAL_PER_G.carbs,
     ),
   );
+
+  const carbsRoomG = Math.max(0, profile.weightKg * MAX_CARBS_G_PER_KG - baseCarbsG);
+  const workoutCarbsKcal = Math.min(workoutCalories, carbsRoomG * KCAL_PER_G.carbs);
+  const carbsG = baseCarbsG + Math.round(workoutCarbsKcal / KCAL_PER_G.carbs);
+  const fatG = baseFatG + Math.round((workoutCalories - workoutCarbsKcal) / KCAL_PER_G.fat);
   const carbsGPerKg = Math.round((carbsG / profile.weightKg) * 10) / 10;
 
   return {
@@ -191,8 +200,9 @@ export function computeTargets(
     bmr: Math.round(bmr),
     maintenanceCalories: Math.round(maintenance),
     stepsUsed,
-    goalAdjustment: calories - Math.round(maintenance),
-    calories,
+    goalAdjustment: baseCalories - Math.round(maintenance),
+    workoutCalories,
+    calories: baseCalories + workoutCalories,
     proteinG,
     carbsG,
     fatG,

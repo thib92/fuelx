@@ -1,4 +1,3 @@
-import Combine
 import ConvexMobile
 import SwiftUI
 
@@ -13,22 +12,20 @@ struct MealView: View {
     let day: Date
     let meal: MealKind
 
-    /// `nil` until the first result arrives, or without a profile.
-    @State private var targets: NutritionTargets?
-    /// `nil` until the first result arrives; `.some(nil)` when signed out.
-    @State private var dayEntries: DayEntries??
+    @Environment(\.dayStore) private var store
     @State private var isAdding = false
     @State private var editing: LogEntry?
     @State private var isCopying = false
     @State private var isConfirmingCopy = false
     @State private var alertMessage: String?
 
-    private var loadedEntries: DayEntries? { dayEntries ?? nil }
-    private var entries: [LogEntry] { loadedEntries?.entries(for: meal) ?? [] }
+    private var targets: NutritionTargets? { store.targets(for: day).loaded }
+    private var dayEntries: DayEntries? { store[day].entries }
+    private var entries: [LogEntry] { dayEntries?.entries(for: meal) ?? [] }
 
     var body: some View {
         List {
-            if let totals = loadedEntries?.mealTotals[meal], !entries.isEmpty {
+            if let totals = dayEntries?.mealTotals[meal], !entries.isEmpty {
                 Section {
                     MealRecap(totals: totals, targets: targets)
                 }
@@ -46,7 +43,7 @@ struct MealView: View {
             }
         }
         .overlay {
-            if loadedEntries != nil, entries.isEmpty {
+            if dayEntries != nil, entries.isEmpty {
                 // Not ContentUnavailableView: it shrinks its actions to fit, so the button can't span.
                 VStack(spacing: 24) {
                     VStack(spacing: 16) {
@@ -118,28 +115,7 @@ struct MealView: View {
         } message: {
             Text(alertMessage ?? "")
         }
-        .task(id: day) {
-            let updates = convex.subscribe(
-                to: "nutrition:targetsForDay",
-                with: NutritionTargets.queryArgs(for: day),
-                yielding: NutritionTargets?.self)
-            do {
-                for try await value in updates.values { targets = value }
-            } catch {
-                print("nutrition:targetsForDay failed: \(error)")
-            }
-        }
-        .task(id: day) {
-            let updates = convex.subscribe(
-                to: "logs:forDay",
-                with: ["day": Days.key(for: day)],
-                yielding: DayEntries?.self)
-            do {
-                for try await value in updates.values { dayEntries = .some(value) }
-            } catch {
-                print("logs:forDay failed: \(error)")
-            }
-        }
+        .task(id: day) { await store.watch(.day(day)) }
     }
 
     private func delete(_ entry: LogEntry) {

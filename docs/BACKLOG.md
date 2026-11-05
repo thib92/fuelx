@@ -41,25 +41,22 @@ Current: horizontal swipe between days + week strip + calendar jump + "Today" bu
 
 ## Product ideas
 
-1. **Daily target.** Net calories mean little without a target or resting energy. "Burned"
-   currently counts workouts only; add resting energy (HealthKit or an estimate) and a target,
-   shown as a ring or progress bar.
-2. **Carbs per hour for fuel.** Endurance athletes plan fueling in g carbs/h (~60–90+ g/h) more
+1. **Carbs per hour for fuel.** Endurance athletes plan fueling in g carbs/h (~60–90+ g/h) more
    than kcal. Add fuel logging on workouts and show g/h.
-3. **Week strip indicators.** A dot or mini bar per day for "logged" or "on target".
-4. **Quick add for workouts.** Buttons to log a workout or fuel by hand.
-5. **Timeline view.** Interleave meals and workouts by time so eating around training is visible.
+2. **Quick add for workouts.** Buttons to log a workout or fuel by hand.
+3. **Timeline view.** Interleave meals and workouts by time so eating around training is visible.
 
 ## Nutrition targets
 
 Current (2026-11-05): Mifflin-St Jeor BMR plus everyday activity, from watch steps when there are
-any and otherwise a factor (sedentary 1.2 / light 1.35 / moderate 1.5; workouts ignored for now) ± goal (rate x 7,700 / 7 kcal/day, loss capped at 1% body weight/week, never below
-BMR); protein fixed g/kg (default 1.6), fat fixed % of calories (default 25%), carbs = rest.
+any and otherwise a factor (sedentary 1.2 / light 1.35 / moderate 1.5) ± goal (rate x 7,700 / 7 kcal/day, loss capped at 1% body weight/week, never below
+BMR), plus 100% of the day's active workout calories; protein fixed g/kg (default 1.6), fat fixed %
+of calories before workouts (default 25%), carbs = rest, plus workout calories up to 12 g/kg, then
+fat.
 Logic: `convex/lib/nutritionTargets.ts`.
 
-- **Count workouts.** Once workouts are connected, add each day's logged/planned workout active
-  kcal on top of maintenance (the activity factors already exclude exercise, so nothing is
-  counted twice). Extra calories then flow into carbs automatically.
+- **Planned workouts.** Only logged workouts count so far, so today's target grows once a workout
+  syncs. Add planned ones from Intervals.icu.
 - **Carbs periodized by training load** (ACSM 2016: 3–5 / 5–7 / 6–10 / 8–12 g/kg) and per-workout
   fuel targets (Burke 2011 / Jeukendrup 2014: ~1 h small amounts, 30–60 g/h, >2.5 h up to 90 g/h).
 - **Fuel for tomorrow**: raise carbs the day before a planned key session.

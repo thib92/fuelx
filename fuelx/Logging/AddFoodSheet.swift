@@ -8,6 +8,7 @@ struct AddFoodSheet: View {
     let meal: MealKind
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthModel.self) private var auth
     @State private var query = ""
     @State private var recents: [RecentFood] = []
     /// `nil` until the current query has results.
@@ -77,7 +78,11 @@ struct AddFoodSheet: View {
                 }
             }
         }
-        .task { await watchRecents() }
+        // Recents fail when signed out, and a failed query doesn't come back by itself.
+        .task(id: auth.session) {
+            guard auth.session != nil else { return }
+            await watchRecents()
+        }
         .task(id: trimmedQuery) { await watchSearch(for: trimmedQuery) }
     }
 

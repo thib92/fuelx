@@ -54,7 +54,7 @@ async function requireOwnEntry(ctx: QueryCtx, id: Id<"logEntries">, userId: stri
   return entry;
 }
 
-function entriesForDay(ctx: QueryCtx, userId: string, day: string) {
+export function entriesForDay(ctx: QueryCtx, userId: string, day: string) {
   return ctx.db
     .query("logEntries")
     .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
@@ -94,7 +94,7 @@ function nutritionOf(entry: Doc<"logEntries">): Nutrition {
   return entryNutrition(entry.grams, entry.per100g);
 }
 
-function totalsOf(entries: Doc<"logEntries">[]): Nutrition {
+export function totalsOf(entries: Doc<"logEntries">[]): Nutrition {
   return roundNutrition(sumNutrition(entries.map(nutritionOf)));
 }
 
