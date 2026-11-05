@@ -34,8 +34,11 @@ npx convex env set FOODS_IMPORT_SECRET "$FOODS_IMPORT_SECRET"
 npx tsx scripts/foods/upload.ts
 ```
 
+Store the secret without a trailing newline: `npx convex env set --from-file` keeps it, and the
+upload is then rejected with "Not allowed".
+
 Upload targets `CONVEX_URL` from `.env.local`, so change that to reach production. The first run
-takes about 10 minutes. If it fails, it prints a line number; pass that to resume.
+takes about 50 minutes. If it fails, it prints a line number; pass that to resume.
 
 ## Refreshing
 
