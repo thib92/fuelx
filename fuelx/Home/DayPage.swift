@@ -2,91 +2,103 @@ import Combine
 import ConvexMobile
 import SwiftUI
 
-/// One day's numbers: summary, targets, meals, and workouts.
+/// One day: calories and macros against the target, meals, and activity.
 struct DayPage: View {
     let day: Date
     let onSetUpProfile: () -> Void
 
-    /// `nil` until the first result arrives; `.some(nil)` when there's no profile yet.
+    @Environment(AuthModel.self) private var auth
+
+    /// `nil` until there's a cached or live result; `.some(nil)` when there's no profile yet.
     @State private var targets: NutritionTargets??
-    /// `nil` until the first result arrives; `.some(nil)` when signed out.
-    @State private var dayEntries: DayEntries??
+    @State private var entries: DayEntries?
     @State private var workoutDay: WorkoutDay?
     @State private var addingTo: MealKind?
+    @State private var isShowingTargetDetails = false
 
-    private var loadedEntries: DayEntries? { dayEntries ?? nil }
+    private var workouts: [Workout] { workoutDay?.workouts ?? [] }
+    /// Restarts the queries on another day or session, and holds them until there is one.
+    private var liveDay: LiveDay { LiveDay(day: day, session: auth.session) }
 
-    private var log: DayLog {
-        DayLog(
-            day: day,
-            mealCalories: Int(loadedEntries?.totals.kcal ?? 0),
-            workouts: workoutDay?.workouts ?? [],
-            steps: workoutDay?.steps.map(Int.init))
+    init(day: Date, onSetUpProfile: @escaping () -> Void) {
+        self.day = day
+        self.onSetUpProfile = onSetUpProfile
+        let cached = DayCache.shared[day]
+        _targets = State(initialValue: cached?.targets.map { .some($0) })
+        _entries = State(initialValue: cached?.entries)
+        _workoutDay = State(initialValue: cached?.workouts)
     }
 
     var body: some View {
         List {
+            overviewSection
+
             Section {
-                DaySummary(log: log)
-            }
-
-            targetsSection
-
-            Section("Meals") {
                 ForEach(MealKind.allCases) { meal in
                     mealRow(meal)
                 }
+            } header: {
+                SectionTitle(title: "Meals", trailing: "kcal")
             }
 
             Section {
-                if !HealthSync.shared.isConnected {
-                    Button("Connect Apple Health", systemImage: "heart") {
-                        Task { await HealthSync.shared.connect() }
-                    }
-                } else if log.workouts.isEmpty {
-                    Label("Rest day", systemImage: "bed.double")
-                        .foregroundStyle(.secondary)
-                }
-                ForEach(log.workouts) { WorkoutRow(workout: $0) }
+                activityRows
             } header: {
-                SectionHeader(
-                    title: Text("Workouts"),
-                    value: log.workouts.isEmpty ? nil : "−\(log.caloriesBurned.kcal)")
+                SectionTitle(title: "Activity")
             }
         }
         .listStyle(.insetGrouped)
         .sheet(item: $addingTo) { meal in
             AddFoodSheet(day: day, meal: meal)
         }
-        .task(id: day) {
+        .sheet(isPresented: $isShowingTargetDetails) {
+            if case .some(.some(let targets)) = targets {
+                TargetDetailsSheet(targets: targets, workouts: workouts)
+            }
+        }
+        .task(id: liveDay) {
+            guard auth.session != nil else { return }
             let updates = convex.subscribe(
                 to: "nutrition:targetsForDay",
                 with: NutritionTargets.queryArgs(for: day),
                 yielding: NutritionTargets?.self)
             do {
-                for try await value in updates.values { targets = .some(value) }
+                for try await value in updates.values {
+                    targets = .some(value)
+                    if let value { DayCache.shared.update(day) { $0.targets = value } }
+                }
             } catch {
                 print("nutrition:targetsForDay failed: \(error)")
             }
         }
-        .task(id: day) {
+        .task(id: liveDay) {
+            guard auth.session != nil else { return }
             let updates = convex.subscribe(
                 to: "logs:forDay",
                 with: ["day": Days.key(for: day)],
                 yielding: DayEntries?.self)
             do {
-                for try await value in updates.values { dayEntries = .some(value) }
+                for try await value in updates.values {
+                    guard let value else { continue }
+                    entries = value
+                    DayCache.shared.update(day) { $0.entries = value }
+                }
             } catch {
                 print("logs:forDay failed: \(error)")
             }
         }
-        .task(id: day) {
+        .task(id: liveDay) {
+            guard auth.session != nil else { return }
             let updates = convex.subscribe(
                 to: "workouts:forDay",
                 with: ["day": Days.key(for: day)],
                 yielding: WorkoutDay?.self)
             do {
-                for try await value in updates.values { workoutDay = value }
+                for try await value in updates.values {
+                    guard let value else { continue }
+                    workoutDay = value
+                    DayCache.shared.update(day) { $0.workouts = value }
+                }
             } catch {
                 print("workouts:forDay failed: \(error)")
             }
@@ -94,31 +106,33 @@ struct DayPage: View {
     }
 
     private func mealRow(_ meal: MealKind) -> some View {
-        HStack {
-            NavigationLink(value: MealRoute(day: day, meal: meal)) {
+        HStack(spacing: 4) {
+            // Hidden behind the row, because a visible link adds a chevron.
+            ZStack {
+                NavigationLink(value: MealRoute(day: day, meal: meal)) { EmptyView() }
+                    .opacity(0)
                 MealRow(
                     meal: meal,
-                    entries: loadedEntries?.entries(for: meal) ?? [],
-                    kcal: Int(loadedEntries?.mealTotals[meal].kcal ?? 0))
+                    entries: entries?.entries(for: meal) ?? [],
+                    kcal: Int(entries?.mealTotals[meal].kcal ?? 0))
             }
-            Button("Add Food to \(meal.label)", systemImage: "plus.circle.fill") { addingTo = meal }
+            Button("Add Food to \(meal.label)", systemImage: "plus") { addingTo = meal }
                 .labelStyle(.iconOnly)
-                .font(.title2)
+                .font(.subheadline.bold())
+                .frame(width: 30, height: 30)
+                .background(.tint.opacity(0.2), in: .circle)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
                 .buttonStyle(.borderless)
         }
+        .listRowInsets(.vertical, 4)
     }
 
     @ViewBuilder
-    private var targetsSection: some View {
+    private var overviewSection: some View {
         switch targets {
         case .some(.some(let targets)):
-            Section {
-                TargetsCard(targets: targets, caloriesEaten: log.mealCalories, eaten: loadedEntries?.totals)
-            } header: {
-                Text("Daily Targets")
-            } footer: {
-                TargetsFootnote(targets: targets)
-            }
+            overview(targets)
         case .some(.none):
             Section {
                 Button(action: onSetUpProfile) {
@@ -128,71 +142,74 @@ struct DayPage: View {
                 Text("Get calorie, protein, carb and fat targets based on your body and goal.")
             }
         case .none:
-            EmptyView()
+            overview(.placeholder)
+                .redacted(reason: .placeholder)
+                .disabled(true)
+        }
+    }
+
+    private func overview(_ targets: NutritionTargets) -> some View {
+        Section {
+            DayOverview(
+                targets: targets,
+                eaten: entries?.totals,
+                isToday: Days.calendar.isDateInToday(day),
+                onShowDetails: { isShowingTargetDetails = true })
+        }
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+    }
+
+    @ViewBuilder
+    private var activityRows: some View {
+        if !HealthSync.shared.isConnected {
+            Button("Connect Apple Health", systemImage: "heart") {
+                Task { await HealthSync.shared.connect() }
+            }
+        } else if workouts.isEmpty {
+            LabeledContent {
+                if let steps = workoutDay?.steps {
+                    Text("\(Int(steps).formatted()) steps")
+                        .monospacedDigit()
+                }
+            } label: {
+                Label("Rest day", systemImage: "bed.double")
+            }
+            .redacted(reason: workoutDay == nil ? .placeholder : [])
+        }
+        ForEach(workouts) { WorkoutRow(workout: $0) }
+        if !workouts.isEmpty, let steps = workoutDay?.steps {
+            LabeledContent {
+                Text(Int(steps).formatted())
+                    .monospacedDigit()
+            } label: {
+                Label("Steps", systemImage: "figure.walk")
+            }
         }
     }
 }
 
-private struct SectionHeader: View {
-    let title: Text
-    let value: String?
+private struct LiveDay: Hashable {
+    let day: Date
+    let session: UUID?
+}
+
+private struct SectionTitle: View {
+    let title: LocalizedStringKey
+    var trailing: LocalizedStringKey?
 
     var body: some View {
-        HStack {
-            title
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.title3.bold())
+                .foregroundStyle(Color(.label))
             Spacer()
-            if let value {
-                Text(value).monospacedDigit()
+            if let trailing {
+                Text(trailing)
+                    .font(.footnote)
             }
         }
-    }
-}
-
-struct DaySummary: View {
-    let log: DayLog
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Net")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(log.netCalories.formatted())
-                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                        .contentTransition(.numericText())
-                    Text("kcal")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 4) {
-                GridRow {
-                    stat("Eaten", log.mealCalories.kcal, systemImage: "fork.knife")
-                    stat("Burned", log.caloriesBurned.kcal, systemImage: "flame")
-                    if let steps = log.steps {
-                        stat("Steps", steps.formatted(), systemImage: "figure.walk")
-                    }
-                }
-            }
-        }
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
-    }
-
-    private func stat(_ title: LocalizedStringKey, _ value: String, systemImage: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 4) {
-                Image(systemName: systemImage)
-                Text(title)
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            Text(value)
-                .font(.headline)
-                .monospacedDigit()
-        }
+        .textCase(nil)
     }
 }
 
@@ -206,21 +223,23 @@ private struct MealRow: View {
         HStack(spacing: 12) {
             Image(systemName: meal.systemImage)
                 .font(.title3)
-                .foregroundStyle(.tint)
-                .frame(width: 32)
-            VStack(alignment: .leading, spacing: 2) {
+                .foregroundStyle(.secondary)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 1) {
                 Text(meal.label)
                     .font(.headline)
-                Text(kcal.kcal)
-                    .font(.subheadline)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
                 if !entries.isEmpty {
                     Text(entries.map(\.name).joined(separator: ", "))
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
+            }
+            Spacer(minLength: 0)
+            if kcal > 0 {
+                Text(kcal.formatted())
+                    .fontWeight(.medium)
+                    .monospacedDigit()
             }
         }
     }
@@ -235,16 +254,16 @@ private struct WorkoutRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(workout.title)
                     Text(workout.detail)
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             } icon: {
                 Image(systemName: workout.sport.systemImage)
             }
             Spacer()
-            Text("−\(workout.caloriesBurned.kcal)")
+            Text("+\(workout.caloriesBurned.kcal)")
+                .font(.subheadline.weight(.semibold))
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
     }
@@ -252,4 +271,5 @@ private struct WorkoutRow: View {
 
 #Preview {
     DayPage(day: Days.today, onSetUpProfile: {})
+        .environment(AuthModel(client: convex, api: betterAuth))
 }

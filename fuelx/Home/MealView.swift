@@ -13,22 +13,31 @@ struct MealView: View {
     let day: Date
     let meal: MealKind
 
-    /// `nil` until the first result arrives, or without a profile.
+    @Environment(AuthModel.self) private var auth
+
+    /// `nil` until there's a cached or live result, or without a profile.
     @State private var targets: NutritionTargets?
-    /// `nil` until the first result arrives; `.some(nil)` when signed out.
-    @State private var dayEntries: DayEntries??
+    /// `nil` until there's a cached or live result.
+    @State private var dayEntries: DayEntries?
     @State private var isAdding = false
     @State private var editing: LogEntry?
     @State private var isCopying = false
     @State private var isConfirmingCopy = false
     @State private var alertMessage: String?
 
-    private var loadedEntries: DayEntries? { dayEntries ?? nil }
-    private var entries: [LogEntry] { loadedEntries?.entries(for: meal) ?? [] }
+    private var entries: [LogEntry] { dayEntries?.entries(for: meal) ?? [] }
+
+    init(day: Date, meal: MealKind) {
+        self.day = day
+        self.meal = meal
+        let cached = DayCache.shared[day]
+        _targets = State(initialValue: cached?.targets)
+        _dayEntries = State(initialValue: cached?.entries)
+    }
 
     var body: some View {
         List {
-            if let totals = loadedEntries?.mealTotals[meal], !entries.isEmpty {
+            if let totals = dayEntries?.mealTotals[meal], !entries.isEmpty {
                 Section {
                     MealRecap(totals: totals, targets: targets)
                 }
@@ -46,7 +55,7 @@ struct MealView: View {
             }
         }
         .overlay {
-            if loadedEntries != nil, entries.isEmpty {
+            if dayEntries != nil, entries.isEmpty {
                 // Not ContentUnavailableView: it shrinks its actions to fit, so the button can't span.
                 VStack(spacing: 24) {
                     VStack(spacing: 16) {
@@ -118,7 +127,8 @@ struct MealView: View {
         } message: {
             Text(alertMessage ?? "")
         }
-        .task(id: day) {
+        .task(id: auth.session) {
+            guard auth.session != nil else { return }
             let updates = convex.subscribe(
                 to: "nutrition:targetsForDay",
                 with: NutritionTargets.queryArgs(for: day),
@@ -129,13 +139,16 @@ struct MealView: View {
                 print("nutrition:targetsForDay failed: \(error)")
             }
         }
-        .task(id: day) {
+        .task(id: auth.session) {
+            guard auth.session != nil else { return }
             let updates = convex.subscribe(
                 to: "logs:forDay",
                 with: ["day": Days.key(for: day)],
                 yielding: DayEntries?.self)
             do {
-                for try await value in updates.values { dayEntries = .some(value) }
+                for try await value in updates.values {
+                    if let value { dayEntries = value }
+                }
             } catch {
                 print("logs:forDay failed: \(error)")
             }

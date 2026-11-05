@@ -24,7 +24,7 @@ nonisolated enum MealKind: String, Codable, CaseIterable, Identifiable, Sendable
     }
 }
 
-nonisolated struct Per100g: Decodable, Hashable, Sendable {
+nonisolated struct Per100g: Codable, Hashable, Sendable {
     let kcal: Double
     let proteinG: Double
     let carbsG: Double
@@ -72,14 +72,14 @@ nonisolated struct RecentFood: Decodable, Identifiable, Sendable {
 }
 
 /// Rounded by the backend: whole kcal, macros to 1 decimal.
-nonisolated struct NutritionTotals: Decodable, Sendable {
+nonisolated struct NutritionTotals: Codable, Sendable {
     let kcal: Double
     let proteinG: Double
     let carbsG: Double
     let fatG: Double
 }
 
-nonisolated struct LogEntry: Decodable, Identifiable, Sendable {
+nonisolated struct LogEntry: Codable, Identifiable, Sendable {
     let id: String
     let meal: MealKind
     let name: String
@@ -105,7 +105,7 @@ nonisolated struct LogEntry: Decodable, Identifiable, Sendable {
 }
 
 /// Returned by `logs:forDay`.
-nonisolated struct DayEntries: Decodable, Sendable {
+nonisolated struct DayEntries: Codable, Sendable {
     let entries: [LogEntry]
     let totals: NutritionTotals
     let mealTotals: MealTotals
@@ -115,7 +115,7 @@ nonisolated struct DayEntries: Decodable, Sendable {
     }
 }
 
-nonisolated struct MealTotals: Decodable, Sendable {
+nonisolated struct MealTotals: Codable, Sendable {
     let breakfast: NutritionTotals
     let lunch: NutritionTotals
     let dinner: NutritionTotals

@@ -50,12 +50,14 @@ struct HomeView: View {
                 MealView(day: route.day, meal: route.meal)
             }
             .navigationTitle(Days.title(for: currentDay))
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbarTitleDisplayMode(.inlineLarge)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Today") {
-                        // Animating across many pages looks like a blur; jump instead.
-                        show(today, animated: Days.distance(from: currentDay, to: today) <= 7)
+                if !isOnToday {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Today") {
+                            // Animating across many pages looks like a blur; jump instead.
+                            show(today, animated: Days.distance(from: currentDay, to: today) <= 7)
+                        }
                     }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {

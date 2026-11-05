@@ -14,7 +14,7 @@ nonisolated enum Sex: String, Codable, CaseIterable, Identifiable, Sendable {
 }
 
 /// Mirrors `activityLevelValidator` in convex/schema.ts. Everyday activity only, used when a
-/// day has no steps from a watch. Workouts don't count toward targets yet.
+/// day has no steps from a watch. Workouts are added to targets separately.
 nonisolated enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {
     case sedentary, light, moderate
     var id: Self { self }
@@ -73,7 +73,7 @@ nonisolated struct NutritionProfile: Decodable, Sendable {
 }
 
 /// Returned by `nutrition:targetsForDay`. Numbers are Convex float64s, hence `Double`.
-nonisolated struct NutritionTargets: Decodable, Sendable {
+nonisolated struct NutritionTargets: Codable, Sendable {
     /// Arguments for `nutrition:targetsForDay`. Only the app knows which day is today.
     @MainActor static func queryArgs(for day: Date) -> [String: ConvexEncodable?] {
         ["day": Days.key(for: day), "inProgress": Days.calendar.isDateInToday(day)]
@@ -83,6 +83,8 @@ nonisolated struct NutritionTargets: Decodable, Sendable {
     let maintenanceCalories: Double
     let stepsUsed: Double?
     let goalAdjustment: Double
+    /// Included in `calories`.
+    let workoutCalories: Double
     let proteinG: Double
     let carbsG: Double
     let fatG: Double
@@ -90,6 +92,21 @@ nonisolated struct NutritionTargets: Decodable, Sendable {
     let goalRateCapped: Bool
     let calorieFloorApplied: Bool
     let lowCarbs: Bool
+
+    /// Sized like a typical day, for a redacted overview while the first result loads.
+    static let placeholder = NutritionTargets(
+        calories: 2000, maintenanceCalories: 2000, stepsUsed: nil, goalAdjustment: 0,
+        workoutCalories: 0, proteinG: 150, carbsG: 250, fatG: 60, carbsGPerKg: 3,
+        goalRateCapped: false, calorieFloorApplied: false, lowCarbs: false)
+}
+
+/// Returned by `nutrition:progressForDays`.
+nonisolated struct DayProgress: Codable, Sendable {
+    let day: String
+    let kcal: Double
+    let targetKcal: Double
+
+    var fraction: Double { targetKcal > 0 ? kcal / targetKcal : 0 }
 }
 
 extension Error {

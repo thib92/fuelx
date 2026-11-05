@@ -6,8 +6,6 @@ struct ContentView: View {
 
     var body: some View {
         switch auth.status {
-        case .loading:
-            ProgressView()
         case .failed(let message):
             ContentUnavailableView {
                 Label("Can't Connect", systemImage: "wifi.exclamationmark")
@@ -18,7 +16,8 @@ struct ContentView: View {
                     Task { await auth.ensureSession() }
                 }
             }
-        case .signedIn:
+        case .loading, .signedIn:
+            // Never waits for the network: days show from the cache, or as placeholders.
             HomeView()
         }
     }
