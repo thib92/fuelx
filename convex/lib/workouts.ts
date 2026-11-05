@@ -96,6 +96,11 @@ export function activeKcal(workout: WorkoutEnergy, bmr: number | undefined): num
   return Math.max(0, kcal - restingKcal);
 }
 
+/** Whole calories per workout, so the total matches the rows the app shows. */
+export function workoutCalories(workouts: WorkoutEnergy[], bmr: number | undefined): number {
+  return workouts.reduce((sum, workout) => sum + Math.round(activeKcal(workout, bmr)), 0);
+}
+
 /** The workouts that count, in the order given. Duplicates go first: they can look like legs. */
 export function countedWorkouts<T extends WorkoutSpan & { sport: string; kcal?: number }>(
   workouts: T[],

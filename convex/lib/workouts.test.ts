@@ -4,6 +4,7 @@ import {
   activeKcal,
   countedWorkouts,
   everydaySteps,
+  workoutCalories,
   withoutDuplicates,
   withoutMultisportParents,
 } from "./workouts";
@@ -142,5 +143,17 @@ describe("everydaySteps", () => {
 
   test("never goes below zero", () => {
     expect(everydaySteps(1000, [{ sport: "run", durationSec: 3600 }])).toBe(0);
+  });
+});
+
+describe("workoutCalories", () => {
+  test("adds whole calories per workout, like the rows the app shows", () => {
+    const row = { sourceBundleId: "com.example", durationSec: 3600 };
+    expect(workoutCalories([{ ...row, kcal: 100.4 }, { ...row, kcal: 100.4 }], 1800)).toBe(200);
+  });
+
+  test("takes resting energy off uncorrected Garmin uploads", () => {
+    const upload = { sourceBundleId: GARMIN_CONNECT_BUNDLE_ID, durationSec: 3600, kcal: 774 };
+    expect(workoutCalories([upload], 1440)).toBe(714);
   });
 });
