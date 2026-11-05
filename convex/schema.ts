@@ -73,6 +73,14 @@ export const importDocValidator = v.object({
 });
 export type ImportDoc = Infer<typeof importDocValidator>;
 
+export const mealValidator = v.union(
+  v.literal("breakfast"),
+  v.literal("lunch"),
+  v.literal("dinner"),
+  v.literal("snack"),
+);
+export type MealName = Infer<typeof mealValidator>;
+
 export default defineSchema({
   profiles: defineTable({
     /** Better Auth user id (`identity.subject`). */
@@ -102,4 +110,29 @@ export default defineSchema({
   })
     .index("by_user_lastUsed", ["userId", "lastUsedAt"])
     .index("by_user_food", ["userId", "foodId"]),
+
+  logEntries: defineTable({
+    userId: v.string(),
+    /** Local calendar date, "YYYY-MM-DD". */
+    day: v.string(),
+    meal: mealValidator,
+    loggedAt: v.number(),
+    /** Absent for AI-estimated items. */
+    foodId: v.optional(v.id("foods")),
+    /** Name, brand and nutrition are copied so food refreshes never change history. */
+    name: v.string(),
+    brand: v.optional(v.string()),
+    grams: v.number(),
+    per100g: per100gValidator,
+    origin: v.union(
+      v.literal("search"),
+      v.literal("recent"),
+      v.literal("barcode"),
+      v.literal("photo"),
+      v.literal("text"),
+      v.literal("copy"),
+    ),
+    /** True when values came from the model, not a database food. */
+    estimated: v.boolean(),
+  }).index("by_user_day", ["userId", "day"]),
 });

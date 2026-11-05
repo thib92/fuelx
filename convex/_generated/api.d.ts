@@ -13,7 +13,9 @@ import type * as foods from "../foods.js";
 import type * as http from "../http.js";
 import type * as lib_foodQuality from "../lib/foodQuality.js";
 import type * as lib_foodSearch from "../lib/foodSearch.js";
+import type * as lib_logMath from "../lib/logMath.js";
 import type * as lib_nutritionTargets from "../lib/nutritionTargets.js";
+import type * as logs from "../logs.js";
 import type * as nutrition from "../nutrition.js";
 import type * as profile from "../profile.js";
 
@@ -29,7 +31,9 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/foodQuality": typeof lib_foodQuality;
   "lib/foodSearch": typeof lib_foodSearch;
+  "lib/logMath": typeof lib_logMath;
   "lib/nutritionTargets": typeof lib_nutritionTargets;
+  logs: typeof logs;
   nutrition: typeof nutrition;
   profile: typeof profile;
 }>;
