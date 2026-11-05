@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var currentDay = Days.today
     @State private var isShowingCalendar = false
     @State private var isShowingAccount = false
+    @State private var isShowingProfile = false
 
     private var today: Date { days.last ?? Days.today }
     private var isOnToday: Bool { currentDay == today }
@@ -24,7 +25,7 @@ struct HomeView: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(days, id: \.self) { day in
-                            DayPage(log: MockDayLogs.log(for: day))
+                            DayPage(log: MockDayLogs.log(for: day)) { isShowingProfile = true }
                                 .containerRelativeFrame(.horizontal)
                         }
                     }
@@ -44,12 +45,10 @@ struct HomeView: View {
             .navigationTitle(Days.title(for: currentDay))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if !isOnToday {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Today") {
-                            // Animating across many pages looks like a blur; jump instead.
-                            show(today, animated: Days.distance(from: currentDay, to: today) <= 7)
-                        }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Today") {
+                        // Animating across many pages looks like a blur; jump instead.
+                        show(today, animated: Days.distance(from: currentDay, to: today) <= 7)
                     }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -64,6 +63,16 @@ struct HomeView: View {
             .sheet(isPresented: $isShowingCalendar) {
                 DayPickerSheet(day: currentDay, availableDays: (days.first ?? today)...today) { day in
                     show(day, animated: false)
+                }
+            }
+            .sheet(isPresented: $isShowingProfile) {
+                NavigationStack {
+                    ProfileForm()
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button(role: .close) { isShowingProfile = false }
+                            }
+                        }
                 }
             }
             .sheet(isPresented: $isShowingAccount) {

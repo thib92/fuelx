@@ -4,7 +4,7 @@ import type { GenericCtx } from "@convex-dev/better-auth/utils";
 import type { BetterAuthOptions } from "better-auth";
 import { betterAuth } from "better-auth";
 import { anonymous } from "better-auth/plugins";
-import { components } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import type { DataModel } from "../_generated/dataModel";
 import authConfig from "../auth.config";
 import schema from "./schema";
@@ -54,12 +54,15 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
       // token), the guest user is deleted after `onLinkAccount` runs.
       anonymous({
         onLinkAccount: async ({ anonymousUser, newUser }) => {
-          // Move any app data owned by the guest to the Apple account here,
-          // e.g. reassign rows from anonymousUser.user.id to newUser.user.id.
-          // This also runs when the Apple account already existed (returning
-          // user on a fresh install), so merge rather than overwrite.
-          void anonymousUser;
-          void newUser;
+          // Move the guest's app data to the Apple account. This also runs
+          // when the Apple account already existed (returning user on a
+          // fresh install), so each transfer must merge, not overwrite.
+          // Sign-in runs in an HTTP action, which can run mutations.
+          if (!("runMutation" in ctx)) return;
+          await ctx.runMutation(internal.profile.transferOnLink, {
+            fromUserId: anonymousUser.user.id,
+            toUserId: newUser.user.id,
+          });
         },
       }),
       // `convex()` also installs Better Auth's bearer plugin, which lets the

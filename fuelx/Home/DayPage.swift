@@ -1,14 +1,22 @@
+import Combine
+import ConvexMobile
 import SwiftUI
 
-/// One day's numbers: summary, meals, and workouts with the fuel taken during them.
+/// One day's numbers: summary, targets, meals, and workouts with the fuel taken during them.
 struct DayPage: View {
     let log: DayLog
+    let onSetUpProfile: () -> Void
+
+    /// `nil` until the first result arrives; `.some(nil)` when there's no profile yet.
+    @State private var targets: NutritionTargets??
 
     var body: some View {
         List {
             Section {
                 DaySummary(log: log)
             }
+
+            targetsSection
 
             if log.isEmpty {
                 ContentUnavailableView(
@@ -36,6 +44,41 @@ struct DayPage: View {
             }
         }
         .listStyle(.insetGrouped)
+        .task(id: log.day) {
+            let updates = convex.subscribe(
+                to: "nutrition:targetsForDay",
+                with: ["day": Days.key(for: log.day)],
+                yielding: NutritionTargets?.self)
+            do {
+                for try await value in updates.values { targets = .some(value) }
+            } catch {
+                print("nutrition:targetsForDay failed: \(error)")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var targetsSection: some View {
+        switch targets {
+        case .some(.some(let targets)):
+            Section {
+                TargetsCard(targets: targets, caloriesEaten: log.caloriesIn)
+            } header: {
+                Text("Daily Targets")
+            } footer: {
+                TargetsFootnote(targets: targets)
+            }
+        case .some(.none):
+            Section {
+                Button(action: onSetUpProfile) {
+                    Label("Set Up Your Daily Targets", systemImage: "target")
+                }
+            } footer: {
+                Text("Get calorie, protein, carb and fat targets based on your body and goal.")
+            }
+        case .none:
+            EmptyView()
+        }
     }
 }
 
@@ -185,5 +228,5 @@ private struct WorkoutRow: View {
 }
 
 #Preview {
-    DayPage(log: MockDayLogs.log(for: Days.today.addingTimeInterval(-86_400)))
+    DayPage(log: MockDayLogs.log(for: Days.today.addingTimeInterval(-86_400)), onSetUpProfile: {})
 }
