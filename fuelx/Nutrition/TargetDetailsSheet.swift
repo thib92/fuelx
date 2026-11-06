@@ -11,14 +11,14 @@ struct TargetDetailsSheet: View {
         NavigationStack {
             List {
                 Section {
-                    row("Maintenance", Int(targets.maintenanceCalories).kcal)
+                    row(String(localized: "Maintenance"), Int(targets.maintenanceCalories).kcal)
                     if targets.goalAdjustment != 0 {
                         row(
-                            targets.goalAdjustment < 0 ? "Weight loss" : "Weight gain",
+                            targets.goalAdjustment < 0 ? String(localized: "Weight loss") : String(localized: "Weight gain"),
                             signed(Int(targets.goalAdjustment)))
                     }
                     ForEach(workouts) { workout in
-                        row(LocalizedStringKey(workout.title), signed(workout.caloriesBurned))
+                        row(workout.title, signed(workout.caloriesBurned))
                     }
                     LabeledContent("Target", value: Int(targets.calories).kcal)
                         .fontWeight(.semibold)
@@ -27,10 +27,10 @@ struct TargetDetailsSheet: View {
 
                 Section {
                     row(
-                        LocalizedStringKey(Macro.carbs.label),
+                        Macro.carbs.label,
                         "\(Int(targets.carbsG)) g · \(targets.carbsGPerKg.formatted(.number.precision(.fractionLength(1)))) g/kg")
-                    row(LocalizedStringKey(Macro.protein.label), "\(Int(targets.proteinG)) g")
-                    row(LocalizedStringKey(Macro.fat.label), "\(Int(targets.fatG)) g")
+                    row(Macro.protein.label, "\(Int(targets.proteinG)) g")
+                    row(Macro.fat.label, "\(Int(targets.fatG)) g")
                 } footer: {
                     if !notes.isEmpty {
                         Text(notes.joined(separator: " "))
@@ -49,7 +49,7 @@ struct TargetDetailsSheet: View {
         .presentationDragIndicator(.visible)
     }
 
-    private func row(_ title: LocalizedStringKey, _ value: String) -> some View {
+    private func row(_ title: String, _ value: String) -> some View {
         LabeledContent(title, value: value)
             .monospacedDigit()
     }

@@ -155,10 +155,11 @@ nonisolated enum BetterAuthError: LocalizedError {
 
   var errorDescription: String? {
     switch self {
-    case .notSignedIn: "You're not signed in."
-    case .noSession: "The server didn't start a session."
-    case .invalidResponse: "Unexpected response from the server."
-    case .requestFailed(let status, _, let message): message ?? "Request failed (\(status))."
+    case .notSignedIn: String(localized: "You're not signed in.")
+    case .noSession: String(localized: "The server didn't start a session.")
+    case .invalidResponse: String(localized: "Unexpected response from the server.")
+    // Not the server's message, which is always in English.
+    case .requestFailed(let status, _, _): String(localized: "Request failed (\(status)).")
     }
   }
 }

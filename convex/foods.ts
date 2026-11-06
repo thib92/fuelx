@@ -1,4 +1,5 @@
 import { ConvexError, v, type Infer } from "convex/values";
+import { notSignedIn, userError } from "./lib/userError";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
@@ -128,7 +129,7 @@ export const saveOffFood = internalMutation({
       .unique();
     const id = existing?._id ?? (await ctx.db.insert("foods", doc));
     const food = existing ?? (await ctx.db.get(id));
-    if (!food) throw new ConvexError("That food couldn't be saved.");
+    if (!food) throw userError("foodNotSaved", "That food couldn't be saved.");
     return toResult(food);
   },
 });
@@ -139,7 +140,7 @@ export const lookupBarcode = action({
   returns: barcodeLookupValidator,
   handler: async (ctx, { barcode }): Promise<BarcodeLookup> => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("You need to be signed in.");
+    if (!identity) throw notSignedIn();
     if (!isValidBarcode(barcode)) return { status: "notFound" };
 
     const known = await ctx.runQuery(internal.foods.byBarcode, { barcode });
@@ -170,18 +171,22 @@ export const createCustom = mutation({
   returns: v.id("foods"),
   handler: async (ctx, { name: rawName, brand: rawBrand, per100g, servingG }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("You need to be signed in.");
+    if (!identity) throw notSignedIn();
 
     const name = rawName.trim();
     const brand = rawBrand?.trim() || undefined;
-    if (name.length < 2) throw new ConvexError("Enter a name.");
+    if (name.length < 2) throw userError("nameRequired", "Enter a name.");
     if (name.length > MAX_NAME_LENGTH || (brand?.length ?? 0) > MAX_NAME_LENGTH) {
-      throw new ConvexError(`Names can be up to ${MAX_NAME_LENGTH} characters.`);
+      throw userError("nameTooLong", `Names can be up to ${MAX_NAME_LENGTH} characters.`, {
+        max: MAX_NAME_LENGTH,
+      });
     }
     // Range only: the calorie check would block drinks, whose energy comes from alcohol.
-    if (!isInRange(per100g)) throw new ConvexError("Those values don't add up.");
+    if (!isInRange(per100g)) throw userError("invalidNutrition", "Those values don't add up.");
     if (servingG !== undefined && !(servingG > 0 && servingG <= MAX_SERVING_G)) {
-      throw new ConvexError(`Serving size must be between 0 and ${MAX_SERVING_G} g.`);
+      throw userError("invalidServing", `Serving size must be between 0 and ${MAX_SERVING_G} g.`, {
+        max: MAX_SERVING_G,
+      });
     }
 
     return await ctx.db.insert("foods", {

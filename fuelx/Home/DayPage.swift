@@ -107,7 +107,7 @@ struct DayPage: View {
         } else if workouts.isEmpty {
             LabeledContent {
                 if let steps = workoutDay?.steps {
-                    Text("\(Int(steps).formatted()) steps")
+                    Text("\(Int(steps)) steps")
                         .monospacedDigit()
                 }
             } label: {

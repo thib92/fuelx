@@ -96,7 +96,7 @@ struct ProfileForm: View {
                     LabeledContent("Protein", value: "\(proteinGPerKg.formatted(.number.precision(.fractionLength(1)))) g/kg")
                 }
                 Stepper(value: $fatPercent, in: 20...35, step: 1) {
-                    LabeledContent("Fat", value: "\(Int(fatPercent))% of calories")
+                    LabeledContent("Fat", value: String(localized: "\(Int(fatPercent))% of calories"))
                 }
             } header: {
                 Text("Advanced")

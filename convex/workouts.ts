@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { notSignedIn } from "./lib/userError";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { computeTargets, parseDay } from "./lib/nutritionTargets";
 import { activeKcal, countedWorkouts } from "./lib/workouts";
@@ -98,7 +99,7 @@ export const sync = mutation({
   returns: v.null(),
   handler: async (ctx, { workouts, deletedIds, steps }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("You need to be signed in.");
+    if (!identity) throw notSignedIn();
     const userId = identity.subject;
     if (Math.max(workouts.length, deletedIds.length, steps.length) > MAX_BATCH) {
       throw new ConvexError(`A batch can hold at most ${MAX_BATCH} items of each kind.`);

@@ -150,7 +150,7 @@ struct AccountView: View {
                 let identityToken = String(data: tokenData, encoding: .utf8),
                 let rawNonce = appleNonce
             else {
-                errorMessage = "Sign in with Apple didn't return an identity token."
+                errorMessage = String(localized: "Sign in with Apple didn't return an identity token.")
                 return
             }
             let apple = AppleIDToken(

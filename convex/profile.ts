@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { notSignedIn, userError } from "./lib/userError";
 import {
   internalMutation,
   mutation,
@@ -55,7 +56,7 @@ export const upsert = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("You need to be signed in.");
+    if (!identity) throw notSignedIn();
 
     const profile = validate(args);
     const existing = await findProfile(ctx, identity.subject);
@@ -107,10 +108,18 @@ function validate(input: NutritionProfile): NutritionProfile {
     fail(`Age must be between ${AGE_RANGE.min} and ${AGE_RANGE.max}.`);
   }
   if (!inRange(input.heightCm, HEIGHT_CM_RANGE)) {
-    fail(`Height must be between ${HEIGHT_CM_RANGE.min} and ${HEIGHT_CM_RANGE.max} cm.`);
+    throw userError(
+      "invalidHeight",
+      `Height must be between ${HEIGHT_CM_RANGE.min} and ${HEIGHT_CM_RANGE.max} cm.`,
+      HEIGHT_CM_RANGE,
+    );
   }
   if (!inRange(input.weightKg, WEIGHT_KG_RANGE)) {
-    fail(`Weight must be between ${WEIGHT_KG_RANGE.min} and ${WEIGHT_KG_RANGE.max} kg.`);
+    throw userError(
+      "invalidWeight",
+      `Weight must be between ${WEIGHT_KG_RANGE.min} and ${WEIGHT_KG_RANGE.max} kg.`,
+      WEIGHT_KG_RANGE,
+    );
   }
   const rate = GOAL_RATES[input.goal].find(
     (allowed) => Math.abs(allowed - input.goalRateKgPerWeek) < EPSILON,

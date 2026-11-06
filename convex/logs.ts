@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { notSignedIn, userError } from "./lib/userError";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { entryNutrition, roundNutrition, sumNutrition, type Nutrition } from "./lib/logMath";
@@ -34,7 +35,7 @@ const entryView = v.object({
 
 async function requireUserId(ctx: QueryCtx): Promise<string> {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new ConvexError("You need to be signed in.");
+  if (!identity) throw notSignedIn();
   return identity.subject;
 }
 
@@ -44,13 +45,13 @@ function requireDay(day: string): void {
 
 function requireGrams(grams: number): void {
   if (!(Number.isFinite(grams) && grams > 0 && grams <= MAX_GRAMS)) {
-    throw new ConvexError(`Grams must be between 0 and ${MAX_GRAMS}.`);
+    throw userError("invalidGrams", `Grams must be between 0 and ${MAX_GRAMS}.`, { max: MAX_GRAMS });
   }
 }
 
 async function requireOwnEntry(ctx: QueryCtx, id: Id<"logEntries">, userId: string) {
   const entry = await ctx.db.get(id);
-  if (!entry || entry.userId !== userId) throw new ConvexError("Entry not found.");
+  if (!entry || entry.userId !== userId) throw userError("entryNotFound", "Entry not found.");
   return entry;
 }
 
@@ -161,7 +162,7 @@ export const add = mutation({
 
     const food = await ctx.db.get(foodId);
     if (!food || (food.ownerId !== undefined && food.ownerId !== userId)) {
-      throw new ConvexError("Food not found.");
+      throw userError("foodNotFound", "Food not found.");
     }
 
     const id = await ctx.db.insert("logEntries", {
