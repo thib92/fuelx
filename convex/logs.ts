@@ -3,7 +3,7 @@ import { notSignedIn, userError } from "./lib/userError";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { entryNutrition, roundNutrition, sumNutrition, type Nutrition } from "./lib/logMath";
-import { parseDay } from "./lib/nutritionTargets";
+import { requireDay } from "./lib/queryHelpers";
 import { foodSourceValidator, mealValidator, per100gValidator, type MealName } from "./schema";
 
 const MAX_GRAMS = 5000;
@@ -37,10 +37,6 @@ async function requireUserId(ctx: QueryCtx): Promise<string> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw notSignedIn();
   return identity.subject;
-}
-
-function requireDay(day: string): void {
-  if (!parseDay(day)) throw new ConvexError("Day must be YYYY-MM-DD.");
 }
 
 function requireGrams(grams: number): void {

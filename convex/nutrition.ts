@@ -2,7 +2,8 @@ import { ConvexError, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { query, type QueryCtx } from "./_generated/server";
 import { entriesForDay, totalsOf } from "./logs";
-import { computeTargets, parseDay } from "./lib/nutritionTargets";
+import { bmrOn, computeTargets } from "./lib/nutritionTargets";
+import { findProfile, requireDay } from "./lib/queryHelpers";
 import {
   MIN_WEARABLE_STEPS,
   countedWorkouts,
@@ -31,17 +32,6 @@ const targetsValidator = v.object({
   lowCarbs: v.boolean(),
 });
 
-function requireDay(day: string): void {
-  if (!parseDay(day)) throw new ConvexError("Day must be YYYY-MM-DD.");
-}
-
-function findProfile(ctx: QueryCtx, userId: string) {
-  return ctx.db
-    .query("profiles")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
-    .unique();
-}
-
 async function targetsFor(
   ctx: QueryCtx,
   userId: string,
@@ -50,7 +40,7 @@ async function targetsFor(
   inProgress: boolean,
 ) {
   const workouts = countedWorkouts(await workoutsForDay(ctx, userId, day));
-  const burned = workoutCalories(workouts, computeTargets(profile, day).bmr);
+  const burned = workoutCalories(workouts, bmrOn(profile, day));
   const activity = await findActivity(ctx, userId, day);
   const wearableSteps = activity?.wearableSteps ?? 0;
   const steps =
@@ -62,18 +52,19 @@ async function targetsFor(
 
 /**
  * Calorie and macro targets for the signed-in user on `day` ("YYYY-MM-DD", the user's local
- * date). Null when signed out or when the user hasn't set up their profile. `inProgress` says
- * the day is today, which the backend can't tell because it doesn't know the user's time zone.
+ * date). Null only when signed out, and `noProfile` when the user hasn't set up their profile, so
+ * the app can tell an expired session from a missing profile. `inProgress` says the day is today,
+ * which the backend can't tell because it doesn't know the user's time zone.
  */
 export const targetsForDay = query({
   args: { day: v.string(), inProgress: v.optional(v.boolean()) },
-  returns: v.union(v.null(), targetsValidator),
+  returns: v.union(v.null(), v.object({ noProfile: v.literal(true) }), targetsValidator),
   handler: async (ctx, { day, inProgress = false }) => {
     requireDay(day);
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
     const profile = await findProfile(ctx, identity.subject);
-    if (!profile) return null;
+    if (!profile) return { noProfile: true as const };
     return targetsFor(ctx, identity.subject, profile, day, inProgress);
   },
 });

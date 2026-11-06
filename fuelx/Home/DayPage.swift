@@ -3,6 +3,7 @@ import SwiftUI
 /// One day: calories and macros against the target, meals, and activity.
 struct DayPage: View {
     let day: Date
+    let isToday: Bool
     let onSetUpProfile: () -> Void
 
     @Environment(\.dayStore) private var store
@@ -45,15 +46,13 @@ struct DayPage: View {
 
     private func mealRow(_ meal: MealKind) -> some View {
         HStack(spacing: 4) {
-            // Hidden behind the row, because a visible link adds a chevron.
-            ZStack {
-                NavigationLink(value: MealRoute(day: day, meal: meal)) { EmptyView() }
-                    .opacity(0)
+            NavigationLink(value: MealRoute(day: day, meal: meal)) {
                 MealRow(
                     meal: meal,
                     entries: entries?.entries(for: meal) ?? [],
                     kcal: Int(entries?.mealTotals[meal].kcal ?? 0))
             }
+            .navigationLinkIndicatorVisibility(.hidden)
             Button("Add Food to \(meal.label)", systemImage: "plus") { addingTo = meal }
                 .labelStyle(.iconOnly)
                 .font(.subheadline.bold())
@@ -91,7 +90,7 @@ struct DayPage: View {
             DayOverview(
                 targets: targets,
                 eaten: entries?.totals,
-                isToday: Days.calendar.isDateInToday(day),
+                isToday: isToday,
                 onShowDetails: { isShowingTargetDetails = true })
         }
         .listRowBackground(Color.clear)
@@ -203,5 +202,5 @@ private struct WorkoutRow: View {
 }
 
 #Preview {
-    DayPage(day: Days.today, onSetUpProfile: {})
+    DayPage(day: Days.today, isToday: true, onSetUpProfile: {})
 }

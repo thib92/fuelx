@@ -16,13 +16,16 @@ final class AuthModel {
   enum Status: Equatable {
     case loading
     case signedIn
-    /// Couldn't create a first session (e.g. offline). Retry with ``ensureSession()``. A stored
-    /// session never ends up here: the app keeps showing cached days and retries by itself.
+    /// Couldn't sign in. Retry with ``ensureSession()``. With no session yet this is immediate
+    /// (e.g. offline). A stored session gets a few quiet retries first, and while offline it only
+    /// ends up here if there are no cached days to show.
     case failed(String)
   }
 
   private static let firstRetryDelay: Duration = .seconds(2)
   private static let maxRetryDelay: Duration = .seconds(30)
+  /// Failed logins with a stored session before telling the user, about 15 seconds.
+  private static let quietAttempts = 4
 
   private(set) var status = Status.loading
   /// Set once Convex accepts the session, and new for each session. Queries must wait for it,
@@ -36,8 +39,11 @@ final class AuthModel {
   private let dayStore: DayStore
   /// Set while deliberately replacing the session, so the auth observer doesn't react to it.
   private var isSwitchingSession = false
+  /// The login in flight, which a session switch has to wait for.
+  private var restoring: Task<Void, Never>?
   private var retryTask: Task<Void, Never>?
   private var retryDelay = AuthModel.firstRetryDelay
+  private var failedAttempts = 0
 
   init(
     client: ConvexClientWithAuth<BetterAuthSession>,
@@ -61,8 +67,30 @@ final class AuthModel {
 
   /// Restores the stored session, or starts a guest session if there is none.
   func ensureSession() async {
+    let login = Task { await restoreSession() }
+    restoring = login
+    await login.value
+  }
+
+  /// Tries again now rather than waiting out the backoff. For returning to the app, which is
+  /// when a connection tends to be back.
+  func retryNow() async {
+    guard retryTask != nil || isFailed, !isSwitchingSession else { return }
+    retryDelay = Self.firstRetryDelay
+    await ensureSession()
+  }
+
+  private var isFailed: Bool {
+    if case .failed = status { true } else { false }
+  }
+
+  private func cancelRetry() {
     retryTask?.cancel()
     retryTask = nil
+  }
+
+  private func restoreSession() async {
+    cancelRetry()
     session = nil
     status = .loading
     do {
@@ -77,11 +105,10 @@ final class AuthModel {
         result = await client.login()
       }
       _ = try result.get()
-      retryDelay = Self.firstRetryDelay
-      status = .signedIn
-      session = UUID()
+      didSignIn()
     } catch {
-      if SessionTokenStore.read() == nil {
+      failedAttempts += 1
+      if SessionTokenStore.read() == nil || shouldStopRetrying(after: error) {
         status = .failed(error.localizedDescription)
       } else {
         retryLater()
@@ -89,14 +116,26 @@ final class AuthModel {
     }
   }
 
-  /// The stored session survives network errors, so this only has to wait for a connection.
+  private func didSignIn() {
+    retryDelay = Self.firstRetryDelay
+    failedAttempts = 0
+    status = .signedIn
+    session = UUID()
+  }
+
+  /// Waiting only makes sense for a connection that may come back, with days to show meanwhile.
+  private func shouldStopRetrying(after error: Error) -> Bool {
+    failedAttempts >= Self.quietAttempts && (!(error is URLError) || dayStore.isEmpty)
+  }
+
+  /// The stored session survives network errors, so this usually only has to wait for a
+  /// connection.
   private func retryLater() {
     let delay = retryDelay
     retryDelay = min(delay * 2, Self.maxRetryDelay)
     retryTask = Task { [weak self] in
       try? await Task.sleep(for: delay)
       guard !Task.isCancelled, let self else { return }
-      // `ensureSession()` cancels this task, which would cancel its own login.
       retryTask = nil
       await ensureSession()
     }
@@ -122,22 +161,27 @@ final class AuthModel {
     }
   }
 
-  /// Replaces the session in place, keeping `status == .signedIn` so the UI (and any open sheet)
-  /// stays put. If anything fails midway, falls back to ``ensureSession()``.
+  /// Replaces the session in place, without passing through `.loading`, so the UI (and any open
+  /// sheet) stays put. If anything fails midway, falls back to ``ensureSession()``.
   private func switchSession(_ body: () async throws -> Void) async {
     isSwitchingSession = true
     defer { isSwitchingSession = false }
+    cancelRetry()
+    // A login running alongside this could replace the token, or start a second guest.
+    await restoring?.value
+    cancelRetry()
     session = nil
     do {
       try await body()
-      session = UUID()
+      didSignIn()
     } catch {
       await ensureSession()
     }
   }
 
+  /// Clears first: if this fails offline, the previous account's days must not stay on disk.
   private func startGuestSession() async throws {
-    try SessionTokenStore.save(try await api.signInAnonymously())
     dayStore.clear()
+    try SessionTokenStore.save(try await api.signInAnonymously())
   }
 }

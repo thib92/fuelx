@@ -4,6 +4,7 @@ import SwiftUI
 /// Browse days: swipe between them, tap the week strip, or jump with the calendar.
 struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dayStore) private var store
 
     /// Two years of history, oldest first, ending today.
     @State private var days = Days.lastDays(730)
@@ -28,7 +29,7 @@ struct HomeView: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(days, id: \.self) { day in
-                            DayPage(day: day) { isShowingProfile = true }
+                            DayPage(day: day, isToday: day == today) { isShowingProfile = true }
                                 .containerRelativeFrame(.horizontal)
                         }
                     }
@@ -109,6 +110,7 @@ struct HomeView: View {
         guard latest.last != days.last, let newToday = latest.last else { return }
         let wasOnToday = isOnToday
         days = latest
+        store.todayDidChange()
         if wasOnToday { show(newToday, animated: false) }
     }
 

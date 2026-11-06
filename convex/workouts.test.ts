@@ -153,6 +153,12 @@ describe("workouts:forDay", () => {
 });
 
 describe("nutrition:targetsForDay with steps", () => {
+  async function targetsOf(user: ReturnType<typeof setup>["alice"], day: string, inProgress?: boolean) {
+    const answer = await user.query(api.nutrition.targetsForDay, { day, inProgress });
+    if (answer === null || "noProfile" in answer) throw new Error("Expected targets");
+    return answer;
+  }
+
   const profile = {
     userId: "alice",
     sex: "male" as const,
@@ -170,7 +176,7 @@ describe("nutrition:targetsForDay with steps", () => {
     const { t, alice } = setup();
     await t.run((ctx) => ctx.db.insert("profiles", profile));
     await alice.mutation(api.workouts.sync, syncArgs(workouts, { steps: [{ day: DAY, ...steps }] }));
-    return alice.query(api.nutrition.targetsForDay, { day: DAY });
+    return targetsOf(alice, DAY);
   }
 
   test("uses watch steps, without the run", async () => {
@@ -190,8 +196,8 @@ describe("nutrition:targetsForDay with steps", () => {
     const { t, alice } = setup();
     await t.run((ctx) => ctx.db.insert("profiles", profile));
     await alice.mutation(api.workouts.sync, syncArgs([], { steps: [{ day: DAY, steps: 3000, wearableSteps: 3000 }] }));
-    const finished = await alice.query(api.nutrition.targetsForDay, { day: DAY });
-    const today = await alice.query(api.nutrition.targetsForDay, { day: DAY, inProgress: true });
+    const finished = await targetsOf(alice, DAY);
+    const today = await targetsOf(alice, DAY, true);
     expect(finished?.stepsUsed).toBe(3000);
     expect(today?.stepsUsed).toBeUndefined();
     expect(today!.calories).toBeGreaterThan(finished!.calories);
