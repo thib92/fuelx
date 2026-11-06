@@ -212,9 +212,16 @@ describe("transferOnLink with logged data", () => {
 });
 
 describe("nutrition.targetsForDay", () => {
-  test("null without a profile; computed targets with one", async () => {
-    const t = convexTest(schema, modules).withIdentity({ subject: "alice" });
+  test("null when signed out", async () => {
+    const t = convexTest(schema, modules);
     expect(await t.query(api.nutrition.targetsForDay, { day: "2026-10-31" })).toBeNull();
+  });
+
+  test("noProfile without a profile; computed targets with one", async () => {
+    const t = convexTest(schema, modules).withIdentity({ subject: "alice" });
+    expect(await t.query(api.nutrition.targetsForDay, { day: "2026-10-31" })).toEqual({
+      noProfile: true,
+    });
 
     await t.mutation(api.profile.upsert, profile);
     const targets = await t.query(api.nutrition.targetsForDay, { day: "2026-10-31" });

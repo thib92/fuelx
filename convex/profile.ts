@@ -1,11 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import {
-  internalMutation,
-  mutation,
-  query,
-
-  type QueryCtx,
-} from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import {
   FAT_PERCENT_RANGE,
   GOAL_RATES,
@@ -14,6 +8,7 @@ import {
   parseDay,
   type NutritionProfile,
 } from "./lib/nutritionTargets";
+import { findProfile } from "./lib/queryHelpers";
 import { transferLogData } from "./logs";
 import { transferWorkoutData } from "./workouts";
 import { profileInputFields } from "./schema";
@@ -30,13 +25,6 @@ const profileDoc = v.object({
   userId: v.string(),
   ...profileInputFields,
 });
-
-async function findProfile(ctx: QueryCtx, userId: string) {
-  return await ctx.db
-    .query("profiles")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
-    .unique();
-}
 
 /** The signed-in user's profile, or null if they haven't set one up. */
 export const get = query({

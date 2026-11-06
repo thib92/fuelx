@@ -2,17 +2,18 @@ import Combine
 import ConvexMobile
 import Foundation
 
-/// Where ``DayStore`` gets live data. A `nil` means signed out, or no profile for targets.
+/// Where ``DayStore`` gets live data. A `nil` means signed out.
 protocol DayDataSource {
-    func targets(for day: Date) -> AsyncThrowingStream<NutritionTargets?, Error>
+    func targets(for day: Date, inProgress: Bool) -> AsyncThrowingStream<TargetsAnswer?, Error>
     func entries(for day: Date) -> AsyncThrowingStream<DayEntries?, Error>
     func workouts(for day: Date) -> AsyncThrowingStream<WorkoutDay?, Error>
     func progress(for days: [Date], today: Date) -> AsyncThrowingStream<[DayProgress]?, Error>
 }
 
 struct ConvexDayData: DayDataSource {
-    func targets(for day: Date) -> AsyncThrowingStream<NutritionTargets?, Error> {
-        stream("nutrition:targetsForDay", NutritionTargets.queryArgs(for: day))
+    func targets(for day: Date, inProgress: Bool) -> AsyncThrowingStream<TargetsAnswer?, Error> {
+        // Only the app knows which day is today.
+        stream("nutrition:targetsForDay", ["day": Days.key(for: day), "inProgress": inProgress])
     }
 
     func entries(for day: Date) -> AsyncThrowingStream<DayEntries?, Error> {

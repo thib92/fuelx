@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
-import { computeTargets, parseDay } from "./lib/nutritionTargets";
+import { bmrOn } from "./lib/nutritionTargets";
+import { findProfile, requireDay } from "./lib/queryHelpers";
 import { activeKcal, countedWorkouts } from "./lib/workouts";
 import { sportValidator, workoutInputFields } from "./schema";
 
@@ -15,10 +16,6 @@ const workoutView = v.object({
   distanceM: v.optional(v.number()),
   indoor: v.optional(v.boolean()),
 });
-
-function requireDay(day: string): void {
-  if (!parseDay(day)) throw new ConvexError("Day must be YYYY-MM-DD.");
-}
 
 function isCount(value: number): boolean {
   return Number.isFinite(value) && value >= 0;
@@ -59,11 +56,8 @@ export const forDay = query({
     const userId = identity.subject;
 
     const rows = await workoutsForDay(ctx, userId, day);
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .unique();
-    const bmr = profile ? computeTargets(profile, day).bmr : undefined;
+    const profile = await findProfile(ctx, userId);
+    const bmr = profile ? bmrOn(profile, day) : undefined;
 
     const workouts = countedWorkouts(rows)
       .sort((a, b) => a.startAt - b.startAt)
