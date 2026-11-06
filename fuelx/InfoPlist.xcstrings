@@ -1,0 +1,40 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSCameraUsageDescription" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "FuelX uses the camera to scan food barcodes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FuelX utilise l’appareil photo pour scanner les codes-barres des aliments."
+          }
+        }
+      }
+    },
+    "NSHealthShareUsageDescription" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "FuelX reads your workouts, steps and energy from Apple Health to balance them against what you eat."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FuelX lit vos entraînements, vos pas et votre énergie dans Apple Santé pour les équilibrer avec ce que vous mangez."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

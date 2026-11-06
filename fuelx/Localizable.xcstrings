@@ -1,0 +1,1622 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ g" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ g"
+          }
+        }
+      }
+    },
+    "%@ kg per week" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kg par semaine"
+          }
+        }
+      }
+    },
+    "%@ of your day" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ de votre journée"
+          }
+        }
+      }
+    },
+    "%@ per 100 g" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ pour 100 g"
+          }
+        }
+      }
+    },
+    "%lld steps" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld step"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld steps"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pas"
+          }
+        }
+      }
+    },
+    "%lld%% of calories" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld %% des calories"
+          }
+        }
+      }
+    },
+    "+%@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%@"
+          }
+        }
+      }
+    },
+    "/ %@ g" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/ %@ g"
+          }
+        }
+      }
+    },
+    "1 serving" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 portion"
+          }
+        }
+      }
+    },
+    "ANSES-Ciqual" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ANSES-Ciqual"
+          }
+        }
+      }
+    },
+    "About" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À propos"
+          }
+        }
+      }
+    },
+    "About You" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À propos de vous"
+          }
+        }
+      }
+    },
+    "Account" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compte"
+          }
+        }
+      }
+    },
+    "Active" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activité élevée"
+          }
+        }
+      }
+    },
+    "Activity" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activité"
+          }
+        }
+      }
+    },
+    "Activity level" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niveau d’activité"
+          }
+        }
+      }
+    },
+    "Add" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter"
+          }
+        }
+      }
+    },
+    "Add %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter %@"
+          }
+        }
+      }
+    },
+    "Add Food" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un aliment"
+          }
+        }
+      }
+    },
+    "Add Food to %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un aliment : %@"
+          }
+        }
+      }
+    },
+    "Advanced" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avancé"
+          }
+        }
+      }
+    },
+    "Allow camera access in Settings to scan barcodes." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisez l’accès à l’appareil photo dans Réglages pour scanner les codes-barres."
+          }
+        }
+      }
+    },
+    "Amount" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quantité"
+          }
+        }
+      }
+    },
+    "Apple Health" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Santé"
+          }
+        }
+      }
+    },
+    "Apple Health isn't available on this device." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Santé n’est pas disponible sur cet appareil."
+          }
+        }
+      }
+    },
+    "Birth date" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date de naissance"
+          }
+        }
+      }
+    },
+    "Brand (optional)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marque (facultatif)"
+          }
+        }
+      }
+    },
+    "Breakfast" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Petit-déjeuner"
+          }
+        }
+      }
+    },
+    "Calories" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calories"
+          }
+        }
+      }
+    },
+    "Calories never go below your resting energy, and loss is capped at 1% of body weight per week." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les calories ne passent jamais sous votre métabolisme de base, et la perte est plafonnée à 1 % du poids corporel par semaine."
+          }
+        }
+      }
+    },
+    "Camera Access Needed" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès à l’appareil photo requis"
+          }
+        }
+      }
+    },
+    "Can't Connect" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion impossible"
+          }
+        }
+      }
+    },
+    "Carbs" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glucides"
+          }
+        }
+      }
+    },
+    "Carbs are below 3 g/kg, the low end for athletes." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les glucides sont sous 3 g/kg, le bas de la fourchette pour les sportifs."
+          }
+        }
+      }
+    },
+    "Connect Apple Health" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecter Apple Santé"
+          }
+        }
+      }
+    },
+    "Connected" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecté"
+          }
+        }
+      }
+    },
+    "Contains data from Open Food Facts, available under the Open Database License." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contient des données d’Open Food Facts, disponibles sous Open Database License."
+          }
+        }
+      }
+    },
+    "Continue" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer"
+          }
+        }
+      }
+    },
+    "Copy Anyway" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier quand même"
+          }
+        }
+      }
+    },
+    "Copy from Yesterday" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier depuis hier"
+          }
+        }
+      }
+    },
+    "Couldn't Check This Product" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérification du produit impossible"
+          }
+        }
+      }
+    },
+    "Create a Food" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer un aliment"
+          }
+        }
+      }
+    },
+    "Daily Activity" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activité quotidienne"
+          }
+        }
+      }
+    },
+    "Daily Target" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objectif du jour"
+          }
+        }
+      }
+    },
+    "Day" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jour"
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer"
+          }
+        }
+      }
+    },
+    "Dinner" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dîner"
+          }
+        }
+      }
+    },
+    "Email" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-mail"
+          }
+        }
+      }
+    },
+    "Enter a name." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez un nom."
+          }
+        }
+      }
+    },
+    "Entry not found." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrée introuvable."
+          }
+        }
+      }
+    },
+    "Estimated" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimé"
+          }
+        }
+      }
+    },
+    "Everyday activity is based on %@ steps, not counting runs and walks." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’activité quotidienne se base sur %@ pas, sans compter les courses et les marches."
+          }
+        }
+      }
+    },
+    "Fat" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lipides"
+          }
+        }
+      }
+    },
+    "Female" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Femme"
+          }
+        }
+      }
+    },
+    "Food Data" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Données alimentaires"
+          }
+        }
+      }
+    },
+    "Food composition data from the ANSES-Ciqual table, available under Licence Ouverte." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Données de composition des aliments issues de la table ANSES-Ciqual, disponibles sous Licence Ouverte."
+          }
+        }
+      }
+    },
+    "Food not found." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aliment introuvable."
+          }
+        }
+      }
+    },
+    "Foods" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aliments"
+          }
+        }
+      }
+    },
+    "For This Amount" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour cette quantité"
+          }
+        }
+      }
+    },
+    "Gain" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prendre"
+          }
+        }
+      }
+    },
+    "Get calorie, protein, carb and fat targets based on your body and goal." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obtenez vos apports cibles en calories, protéines, glucides et lipides selon votre corps et votre objectif."
+          }
+        }
+      }
+    },
+    "Go to Day" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aller à un jour"
+          }
+        }
+      }
+    },
+    "Goal" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objectif"
+          }
+        }
+      }
+    },
+    "Grams must be between 0 and %@." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La quantité en grammes doit être comprise entre 0 et %@."
+          }
+        }
+      }
+    },
+    "Height" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille"
+          }
+        }
+      }
+    },
+    "Height must be between %@ and %@ cm." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Height must be between %1$@ and %2$@ cm."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La taille doit être comprise entre %1$@ et %2$@ cm."
+          }
+        }
+      }
+    },
+    "Hike" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Randonnée"
+          }
+        }
+      }
+    },
+    "Indoor Ride" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vélo en intérieur"
+          }
+        }
+      }
+    },
+    "Lightly active" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activité légère"
+          }
+        }
+      }
+    },
+    "Looking up this product" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche du produit"
+          }
+        }
+      }
+    },
+    "Lose" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perdre"
+          }
+        }
+      }
+    },
+    "Lunch" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déjeuner"
+          }
+        }
+      }
+    },
+    "Maintain" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenir"
+          }
+        }
+      }
+    },
+    "Maintenance" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintien"
+          }
+        }
+      }
+    },
+    "Male" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homme"
+          }
+        }
+      }
+    },
+    "Meals" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repas"
+          }
+        }
+      }
+    },
+    "Mobility" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobilité"
+          }
+        }
+      }
+    },
+    "More" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus"
+          }
+        }
+      }
+    },
+    "Mostly sitting, like a desk job" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Surtout en position assise, comme un travail de bureau"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom"
+          }
+        }
+      }
+    },
+    "Names can be up to %@ characters." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les noms peuvent contenir jusqu’à %@ caractères."
+          }
+        }
+      }
+    },
+    "New Food" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvel aliment"
+          }
+        }
+      }
+    },
+    "Nothing Logged" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun aliment enregistré"
+          }
+        }
+      }
+    },
+    "Nothing to copy." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien à copier."
+          }
+        }
+      }
+    },
+    "Nutrition Profile" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil nutritionnel"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "On your feet or doing physical work most of the day" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debout ou en travail physique la majeure partie de la journée"
+          }
+        }
+      }
+    },
+    "On your feet part of the day, like teaching or retail" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debout une partie de la journée, comme dans l’enseignement ou la vente"
+          }
+        }
+      }
+    },
+    "One serving (optional)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portion (facultatif)"
+          }
+        }
+      }
+    },
+    "Open Database License" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Database License"
+          }
+        }
+      }
+    },
+    "Open Food Facts" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Food Facts"
+          }
+        }
+      }
+    },
+    "Open Settings" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Réglages"
+          }
+        }
+      }
+    },
+    "Other" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autre"
+          }
+        }
+      }
+    },
+    "Per 100 g" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour 100 g"
+          }
+        }
+      }
+    },
+    "Product Not Found" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Produit introuvable"
+          }
+        }
+      }
+    },
+    "Protein" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protéines"
+          }
+        }
+      }
+    },
+    "Protein is set per kg of body weight, fat as a share of calories, and carbs get the rest. Sports nutrition guidelines suggest 1.2–2.0 g/kg of protein and 20–35% fat." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les protéines sont définies par kg de poids corporel, les lipides en part des calories, et les glucides complètent le reste. Les recommandations en nutrition sportive conseillent 1,2–2,0 g/kg de protéines et 20–35 % de lipides."
+          }
+        }
+      }
+    },
+    "Raised to your resting energy: eating less isn't recommended." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relevé à votre métabolisme de base : manger moins n’est pas recommandé."
+          }
+        }
+      }
+    },
+    "Rate" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rythme"
+          }
+        }
+      }
+    },
+    "Recent" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récents"
+          }
+        }
+      }
+    },
+    "Request failed (%lld)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La requête a échoué (%lld)."
+          }
+        }
+      }
+    },
+    "Rest day" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jour de repos"
+          }
+        }
+      }
+    },
+    "Ride" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vélo"
+          }
+        }
+      }
+    },
+    "Run" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Course"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer"
+          }
+        }
+      }
+    },
+    "Scan Again" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanner à nouveau"
+          }
+        }
+      }
+    },
+    "Scan a Barcode" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanner un code-barres"
+          }
+        }
+      }
+    },
+    "Scanning Isn't Available" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan indisponible"
+          }
+        }
+      }
+    },
+    "Search Instead" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher plutôt"
+          }
+        }
+      }
+    },
+    "Search foods" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher un aliment"
+          }
+        }
+      }
+    },
+    "Sedentary" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sédentaire"
+          }
+        }
+      }
+    },
+    "Serving size must be between 0 and %@ g." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La taille de la portion doit être comprise entre 0 et %@ g."
+          }
+        }
+      }
+    },
+    "Set Up Your Daily Targets" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Définir vos objectifs quotidiens"
+          }
+        }
+      }
+    },
+    "Sex" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sexe"
+          }
+        }
+      }
+    },
+    "Shows how this target is set" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indique comment cet objectif est défini"
+          }
+        }
+      }
+    },
+    "Sign Out" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se déconnecter"
+          }
+        }
+      }
+    },
+    "Sign in with Apple didn't return an identity token." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion avec Apple n’a pas renvoyé de jeton d’identité."
+          }
+        }
+      }
+    },
+    "Sign in with Apple to keep your data if you reinstall or switch devices." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous avec Apple pour conserver vos données si vous réinstallez l’app ou changez d’appareil."
+          }
+        }
+      }
+    },
+    "Snack" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collation"
+          }
+        }
+      }
+    },
+    "Something Went Wrong" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une erreur est survenue"
+          }
+        }
+      }
+    },
+    "Steps" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas"
+          }
+        }
+      }
+    },
+    "Strength" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Musculation"
+          }
+        }
+      }
+    },
+    "Swim" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Natation"
+          }
+        }
+      }
+    },
+    "Target" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objectif"
+          }
+        }
+      }
+    },
+    "That food couldn't be saved." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’enregistrer cet aliment."
+          }
+        }
+      }
+    },
+    "The product database isn't responding. Try again, or search instead." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La base de données produits ne répond pas. Réessayez ou lancez une recherche."
+          }
+        }
+      }
+    },
+    "The server didn't start a session." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le serveur n’a pas ouvert de session."
+          }
+        }
+      }
+    },
+    "This device can't scan barcodes. You can search instead." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet appareil ne peut pas scanner de codes-barres. Vous pouvez lancer une recherche."
+          }
+        }
+      }
+    },
+    "This meal already has food." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce repas contient déjà des aliments."
+          }
+        }
+      }
+    },
+    "Those values don't add up." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ces valeurs ne sont pas cohérentes."
+          }
+        }
+      }
+    },
+    "Today" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aujourd’hui"
+          }
+        }
+      }
+    },
+    "Try Again" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayer"
+          }
+        }
+      }
+    },
+    "Unexpected response from the server." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réponse inattendue du serveur."
+          }
+        }
+      }
+    },
+    "Used to estimate your resting energy with the Mifflin-St Jeor equation." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sert à estimer votre métabolisme de base avec l’équation de Mifflin-St Jeor."
+          }
+        }
+      }
+    },
+    "Walk" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marche"
+          }
+        }
+      }
+    },
+    "We don't have this product. Try searching for it instead." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nous n’avons pas ce produit. Essayez plutôt de le rechercher."
+          }
+        }
+      }
+    },
+    "Weight" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poids"
+          }
+        }
+      }
+    },
+    "Weight Goal" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objectif de poids"
+          }
+        }
+      }
+    },
+    "Weight gain" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prise de poids"
+          }
+        }
+      }
+    },
+    "Weight loss" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perte de poids"
+          }
+        }
+      }
+    },
+    "Weight loss is capped at 1% of body weight per week." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La perte de poids est plafonnée à 1 % du poids corporel par semaine."
+          }
+        }
+      }
+    },
+    "Weight must be between %@ and %@ kg." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Weight must be between %1$@ and %2$@ kg."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le poids doit être compris entre %1$@ et %2$@ kg."
+          }
+        }
+      }
+    },
+    "Workout calories go to carbs, up to 12 g/kg, then to fat." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les calories d’entraînement vont aux glucides, jusqu’à 12 g/kg, puis aux lipides."
+          }
+        }
+      }
+    },
+    "Yesterday" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier"
+          }
+        }
+      }
+    },
+    "Yesterday's food will be added to what's already logged." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les aliments d’hier s’ajouteront à ceux déjà enregistrés."
+          }
+        }
+      }
+    },
+    "You need to be signed in." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous devez vous connecter."
+          }
+        }
+      }
+    },
+    "You're not signed in." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous devez vous connecter."
+          }
+        }
+      }
+    },
+    "You're offline. Check your connection and try again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes hors ligne. Vérifiez votre connexion et réessayez."
+          }
+        }
+      }
+    },
+    "You're using Fuelx as a guest." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous utilisez Fuelx avec un compte invité."
+          }
+        }
+      }
+    },
+    "Your body, activity and weight goal set your daily targets." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre corps, votre activité et votre objectif de poids déterminent vos apports quotidiens."
+          }
+        }
+      }
+    },
+    "Your everyday activity outside of training. Workouts don't count toward your targets yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre activité de tous les jours, hors entraînement. Les séances ne comptent pas encore dans vos objectifs."
+          }
+        }
+      }
+    },
+    "g" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "g"
+          }
+        }
+      }
+    },
+    "kcal" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kcal"
+          }
+        }
+      }
+    },
+    "kcal eaten" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kcal consommées"
+          }
+        }
+      }
+    },
+    "kcal left" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kcal restantes"
+          }
+        }
+      }
+    },
+    "kcal over" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kcal en trop"
+          }
+        }
+      }
+    },
+    "of %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sur %@"
+          }
+        }
+      }
+    },
+    "of %@ + %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "of %1$@ + %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sur %1$@ + %2$@"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

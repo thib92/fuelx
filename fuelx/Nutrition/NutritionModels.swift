@@ -120,14 +120,44 @@ nonisolated struct DayProgress: Codable, Sendable {
     var fraction: Double { targetKcal > 0 ? kcal / targetKcal : 0 }
 }
 
+/// An error people can run into, sent by `userError` in convex/lib/userError.ts.
+nonisolated struct UserError: Decodable, Sendable {
+    let code: String
+    /// The backend's English, for a code this version of the app doesn't know.
+    let message: String
+    var min: Double?
+    var max: Double?
+
+    var localizedMessage: String {
+        let min = (min ?? 0).formatted()
+        let max = (max ?? 0).formatted()
+        return switch code {
+        case "notSignedIn": String(localized: "You need to be signed in.")
+        case "nameRequired": String(localized: "Enter a name.")
+        case "nameTooLong": String(localized: "Names can be up to \(max) characters.")
+        case "invalidNutrition": String(localized: "Those values don't add up.")
+        case "invalidServing": String(localized: "Serving size must be between 0 and \(max) g.")
+        case "invalidGrams": String(localized: "Grams must be between 0 and \(max).")
+        case "entryNotFound": String(localized: "Entry not found.")
+        case "foodNotFound": String(localized: "Food not found.")
+        case "foodNotSaved": String(localized: "That food couldn't be saved.")
+        case "invalidHeight": String(localized: "Height must be between \(min) and \(max) cm.")
+        case "invalidWeight": String(localized: "Weight must be between \(min) and \(max) kg.")
+        default: message
+        }
+    }
+}
+
 extension Error {
     /// The message from a Convex `ConvexError`, or the usual description.
     nonisolated var convexMessage: String {
-        if case ClientError.ConvexError(let data)? = self as? ClientError,
-            let message = try? JSONDecoder().decode(String.self, from: Data(data.utf8))
-        {
-            return message
+        guard case ClientError.ConvexError(let data)? = self as? ClientError else {
+            return localizedDescription
         }
-        return localizedDescription
+        let json = Data(data.utf8)
+        if let error = try? JSONDecoder().decode(UserError.self, from: json) {
+            return error.localizedMessage
+        }
+        return (try? JSONDecoder().decode(String.self, from: json)) ?? localizedDescription
     }
 }

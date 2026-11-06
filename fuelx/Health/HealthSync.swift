@@ -82,7 +82,7 @@ final class HealthSync {
                 try await syncOnce()
                 lastError = nil
             } catch {
-                lastError = error.localizedDescription
+                lastError = error.convexMessage
                 print("Health sync failed: \(error)")
             }
         } while needsAnotherSync
