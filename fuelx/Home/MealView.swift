@@ -7,7 +7,7 @@ nonisolated struct MealRoute: Hashable, Sendable {
     let meal: MealKind
 }
 
-/// One meal: a recap of what it adds up to, then its foods.
+/// One meal: how it splits between macros and where that leaves the day, then its foods.
 struct MealView: View {
     let day: Date
     let meal: MealKind
@@ -22,56 +22,38 @@ struct MealView: View {
     private var targets: NutritionTargets? { store.targets(for: day).loaded }
     private var dayEntries: DayEntries? { store[day].entries }
     private var entries: [LogEntry] { dayEntries?.entries(for: meal) ?? [] }
+    private var isEmpty: Bool { dayEntries != nil && entries.isEmpty }
+    private var yesterday: Date? { Days.calendar.date(byAdding: .day, value: -1, to: day) }
+    private var yesterdayEntries: DayEntries? { yesterday.flatMap { store[$0].entries } }
 
     var body: some View {
         List {
-            if let totals = dayEntries?.mealTotals[meal], !entries.isEmpty {
+            if let dayEntries {
                 Section {
-                    MealRecap(totals: totals, targets: targets)
+                    MealHero(
+                        meal: entries.isEmpty ? nil : dayEntries.mealTotals[meal],
+                        day: dayEntries.totals,
+                        targets: targets,
+                        isToday: Days.calendar.isDateInToday(day))
                 }
-                Section("Foods") {
-                    ForEach(entries) { entry in
-                        Button { editing = entry } label: { LogEntryRow(entry: entry) }
-                            .buttonStyle(.plain)
-                            .swipeActions {
-                                Button("Delete", systemImage: "trash", role: .destructive) {
-                                    delete(entry)
-                                }
-                            }
-                    }
-                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
-        }
-        .overlay {
-            if dayEntries != nil, entries.isEmpty {
-                // Not ContentUnavailableView: it shrinks its actions to fit, so the button can't span.
-                VStack(spacing: 24) {
-                    VStack(spacing: 16) {
-                        Image(systemName: meal.systemImage)
-                            .font(.system(size: 48))
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
-                        Text("Nothing Logged")
-                            .font(.title2.bold())
-                    }
-                    Button { isAdding = true } label: {
-                        Text("Add Food").frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                }
-                .padding(.horizontal, 32)
+            if isEmpty {
+                emptySections
+            } else if !entries.isEmpty {
+                foodsSection
             }
         }
         .navigationTitle(meal.label)
+        .navigationSubtitle(Days.title(for: day))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItem(placement: .topBarTrailing) {
                 Menu("More", systemImage: "ellipsis") {
                     Button("Copy from Yesterday", systemImage: "doc.on.doc", action: requestCopy)
                         .disabled(isCopying)
                 }
-                Button("Add Food", systemImage: "plus") { isAdding = true }
             }
         }
         .sheet(isPresented: $isAdding) {
@@ -97,6 +79,7 @@ struct MealView: View {
                     }
                 }
             }
+            .presentationDragIndicator(.visible)
         }
         .confirmationDialog(
             "This meal already has food.",
@@ -116,6 +99,65 @@ struct MealView: View {
             Text(alertMessage ?? "")
         }
         .task(id: day) { await store.watch(.day(day)) }
+        .task(id: isEmpty ? yesterday : nil) {
+            if isEmpty, let yesterday { await store.watch(.day(yesterday)) }
+        }
+    }
+
+    private var foodsSection: some View {
+        Section {
+            ForEach(entries) { entry in
+                Button { editing = entry } label: { LogEntryRow(entry: entry) }
+                    .buttonStyle(.plain)
+                    .swipeActions {
+                        Button("Delete", systemImage: "trash", role: .destructive) {
+                            delete(entry)
+                        }
+                    }
+            }
+            Button { isAdding = true } label: {
+                HStack(spacing: 13) {
+                    Image(systemName: "plus")
+                        .font(.subheadline.bold())
+                        .frame(width: 30, height: 30)
+                        .background(.tint.opacity(0.2), in: .circle)
+                        .padding(.leading, 1)
+                    Text("Add Food")
+                        .fontWeight(.medium)
+                }
+            }
+        } header: {
+            SectionTitle(title: "Foods", trailing: "kcal")
+        }
+    }
+
+    @ViewBuilder
+    private var emptySections: some View {
+        Section {
+            Button { isAdding = true } label: {
+                Label("Add Food", systemImage: "plus")
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .listRowInsets(.all, 0)
+            .listRowBackground(Color.clear)
+        } header: {
+            SectionTitle(title: "Nothing logged yet")
+        }
+
+        if let yesterdayEntries, !yesterdayEntries.entries(for: meal).isEmpty {
+            Section {
+                Button(action: requestCopy) {
+                    CopyMealRow(
+                        entries: yesterdayEntries.entries(for: meal),
+                        kcal: Int(yesterdayEntries.mealTotals[meal].kcal))
+                }
+                .buttonStyle(.plain)
+                .disabled(isCopying)
+            }
+        }
     }
 
     private func delete(_ entry: LogEntry) {
@@ -139,7 +181,7 @@ struct MealView: View {
     }
 
     private func copyFromYesterday() {
-        guard let yesterday = Days.calendar.date(byAdding: .day, value: -1, to: day) else { return }
+        guard let yesterday else { return }
         isCopying = true
         Task {
             defer { isCopying = false }
@@ -160,59 +202,164 @@ struct MealView: View {
     }
 }
 
-/// What a meal adds up to and, with a profile, how much of the day's targets that is.
-private struct MealRecap: View {
-    let totals: NutritionTotals
+/// A meal's macro split beside the macros against the day. An empty meal shows what's left to eat.
+private struct MealHero: View {
+    /// `nil` for a meal with nothing logged.
+    let meal: NutritionTotals?
+    let day: NutritionTotals
     let targets: NutritionTargets?
+    /// Past days show what was eaten rather than what's left, as the day page does.
+    let isToday: Bool
+
+    private var segments: [MacroRingSegment] { meal.map { MacroRingSegment.segments($0) } ?? [] }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(Int(totals.kcal).formatted())
-                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                        .contentTransition(.numericText())
-                    Text("kcal")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
-                if let share = share(of: totals.kcal, target: targets?.calories) {
-                    Text("\(share) of your day")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+        HStack(spacing: 20) {
+            MacroRing(segments: segments, lineWidth: 16) { center }
+                .frame(width: 168, height: 168)
+                .accessibilityElement(children: .combine)
+                .accessibilityValue(MacroRingSegment.accessibilityLabel(for: segments))
+            VStack(spacing: 14) {
+                ForEach(Macro.allCases, id: \.self) { macro in
+                    macroRow(macro)
                 }
             }
+            .frame(maxWidth: .infinity)
+        }
+    }
 
-            HStack(alignment: .top) {
-                macro("Protein", grams: totals.proteinG, target: targets?.proteinG)
-                macro("Carbs", grams: totals.carbsG, target: targets?.carbsG)
-                macro("Fat", grams: totals.fatG, target: targets?.fatG)
+    @ViewBuilder
+    private var center: some View {
+        if let meal {
+            centerText(Int(meal.kcal), "kcal", size: 44, isOver: false)
+        } else if isToday, let targets {
+            let remaining = Int(targets.calories) - Int(day.kcal)
+            centerText(abs(remaining), remaining >= 0 ? "kcal left" : "kcal over", size: 36, isOver: remaining < 0)
+        } else {
+            centerText(Int(day.kcal), "kcal eaten", size: 36, isOver: false)
+        }
+    }
+
+    private func centerText(_ value: Int, _ label: LocalizedStringKey, size: CGFloat, isOver: Bool) -> some View {
+        VStack(spacing: 0) {
+            Text(value.formatted())
+                .font(.system(size: size, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+                .contentTransition(.numericText())
+                .foregroundStyle(isOver ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
+            Text(label)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 12)
+    }
+
+    private func macroRow(_ macro: Macro) -> some View {
+        let dayGrams = day.grams(of: macro)
+        let mealGrams = meal?.grams(of: macro)
+        let target = targets?.grams(of: macro)
+
+        return VStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(macro.label)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 0)
+                value(mealGrams: mealGrams, dayGrams: dayGrams, target: target)
+            }
+            if let target, target > 0 {
+                MacroBar(
+                    earlier: (dayGrams - (mealGrams ?? 0)) / target,
+                    meal: (mealGrams ?? 0) / target,
+                    color: macro.color)
             }
         }
-        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
     }
 
-    private func macro(_ title: LocalizedStringKey, grams: Double, target: Double?) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(grams.grams)
-                .font(.headline)
-                .monospacedDigit()
-            if let share = share(of: grams, target: target) {
-                Text(share)
-                    .font(.caption2)
+    private func value(mealGrams: Double?, dayGrams: Double, target: Double?) -> some View {
+        let grams: Double
+        var detail: Text?
+        if let mealGrams {
+            grams = mealGrams
+            if let target, target > 0 {
+                detail = Text((mealGrams / target).formatted(.percent.precision(.fractionLength(0))))
+            }
+        } else if let target, isToday {
+            grams = max(target - dayGrams, 0)
+            detail = Text("left")
+        } else {
+            grams = dayGrams
+            detail = target.map { Text("/ \(Int($0).formatted()) g") }
+        }
+
+        return HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(grams.rounded().grams)
+                .font(.subheadline.weight(.semibold))
+            if let detail {
+                detail
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .monospacedDigit()
+        .lineLimit(1)
     }
+}
 
-    private func share(of value: Double, target: Double?) -> String? {
-        guard let target, target > 0 else { return nil }
-        return (value / target).formatted(.percent.precision(.fractionLength(0)))
+/// A macro against the day's target: dimmed for what was eaten elsewhere, solid for this meal.
+private struct MacroBar: View {
+    /// Shares of the target.
+    let earlier: Double
+    let meal: Double
+    let color: Color
+
+    private var earlierShare: Double { min(max(earlier, 0), 1) }
+    private var mealShare: Double { min(max(meal, 0), 1 - earlierShare) }
+
+    var body: some View {
+        GeometryReader { proxy in
+            HStack(spacing: 0) {
+                color.opacity(0.4).frame(width: proxy.size.width * earlierShare)
+                color.frame(width: proxy.size.width * mealShare)
+            }
+        }
+        .frame(height: 6)
+        .background(Color(.systemFill))
+        .clipShape(.capsule)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Yesterday's version of this meal, offered as a one-tap copy.
+private struct CopyMealRow: View {
+    let entries: [LogEntry]
+    let kcal: Int
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "doc.on.doc")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Copy from Yesterday")
+                    .fontWeight(.medium)
+                Text(entries.map(\.name).joined(separator: ", "))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            Text(kcal.formatted())
+                .fontWeight(.medium)
+                .monospacedDigit()
+        }
+        .contentShape(.rect)
     }
 }
 
@@ -225,18 +372,30 @@ private struct LogEntryRow: View {
             .joined(separator: " · ")
     }
 
+    private var segments: [MacroRingSegment] { MacroRingSegment.segments(entry.totals) }
+
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 12) {
+            MacroRing(segments: segments, lineWidth: 4) { EmptyView() }
+                .frame(width: 32, height: 32)
+                .accessibilityElement()
+                .accessibilityLabel(MacroRingSegment.accessibilityLabel(for: segments))
+            VStack(alignment: .leading, spacing: 1) {
                 Text(entry.name)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
                 Text(detail)
-                    .font(.caption)
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                    .lineLimit(1)
             }
-            Spacer()
-            Text(Int(entry.kcal).kcal)
+            Spacer(minLength: 0)
+            Text(Int(entry.kcal).formatted())
+                .fontWeight(.medium)
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
         }
+        .padding(.vertical, 4)
+        .contentShape(.rect)
     }
 }

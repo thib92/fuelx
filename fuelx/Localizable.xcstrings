@@ -21,16 +21,6 @@
         }
       }
     },
-    "%@ of your day" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ de votre journée"
-          }
-        }
-      }
-    },
     "%@ per 100 g" : {
       "localizations" : {
         "fr" : {
@@ -105,6 +95,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1 portion"
+          }
+        }
+      }
+    },
+    "Add 10 g" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter 10 g"
           }
         }
       }
@@ -705,6 +705,16 @@
         }
       }
     },
+    "left" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "restants"
+          }
+        }
+      }
+    },
     "Lightly active" : {
       "localizations" : {
         "fr" : {
@@ -845,12 +855,12 @@
         }
       }
     },
-    "Nothing Logged" : {
+    "Nothing logged yet" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun aliment enregistré"
+            "value" : "Rien d'enregistré pour l'instant"
           }
         }
       }
@@ -1021,6 +1031,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Récents"
+          }
+        }
+      }
+    },
+    "Remove 10 g" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirer 10 g"
           }
         }
       }

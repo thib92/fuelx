@@ -36,40 +36,48 @@ struct AmountView: View {
     var body: some View {
         Form {
             Section {
-                HStack {
-                    TextField("Amount", value: $grams, format: .number)
-                        .keyboardType(.decimalPad)
-                    Text("g").foregroundStyle(.secondary)
-                }
-                ScrollView(.horizontal) {
-                    HStack {
-                        if let servingG = food.servingG {
-                            Button("1 serving") { grams = servingG }
+                VStack(spacing: 12) {
+                    HStack(spacing: 12) {
+                        stepButton("Remove 10 g", systemImage: "minus") { grams = max(grams - 10, 0) }
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            TextField("Amount", value: $grams, format: .number)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .font(.system(size: 44, weight: .bold, design: .rounded))
+                                .monospacedDigit()
+                                .frame(width: 130)
+                            Text("g")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
                         }
-                        ForEach(Self.quickAmounts, id: \.self) { amount in
-                            Button("\(amount.formatted()) g") { grams = amount }
-                        }
+                        .frame(maxWidth: .infinity)
+                        stepButton("Add 10 g", systemImage: "plus") { grams += 10 }
                     }
-                    .buttonStyle(.bordered)
+                    ViewThatFits(in: .horizontal) {
+                        quickAmountButtons
+                        ScrollView(.horizontal) { quickAmountButtons }
+                            .scrollIndicators(.hidden)
+                    }
                 }
-                .scrollIndicators(.hidden)
-            } header: {
-                Text("Amount")
             }
+            .listRowBackground(Color.clear)
+            .listRowInsets(.horizontal, 0)
 
             Section {
                 LabeledContent("Calories", value: Int(amount(food.per100g.kcal).rounded()).kcal)
-                LabeledContent("Protein", value: amount(food.per100g.proteinG).grams)
-                LabeledContent("Carbs", value: amount(food.per100g.carbsG).grams)
-                LabeledContent("Fat", value: amount(food.per100g.fatG).grams)
+                macroRow(.carbs, per100g: food.per100g.carbsG)
+                macroRow(.protein, per100g: food.per100g.proteinG)
+                macroRow(.fat, per100g: food.per100g.fatG)
             } header: {
                 Text("For This Amount")
             }
 
             if let onDelete {
                 Section {
-                    Button("Delete", systemImage: "trash", role: .destructive) { perform(onDelete) }
-                        .disabled(isSaving)
+                    Button(role: .destructive) { perform(onDelete) } label: {
+                        Text("Delete").frame(maxWidth: .infinity)
+                    }
+                    .disabled(isSaving)
                 }
             }
 
@@ -85,6 +93,59 @@ struct AmountView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button(primaryTitle) { perform { try await onSubmit(grams) } }
                     .disabled(!canSave)
+            }
+        }
+    }
+
+    private func stepButton(
+        _ title: LocalizedStringKey, systemImage: String, action: @escaping () -> Void
+    ) -> some View {
+        Button(title, systemImage: systemImage, action: action)
+            .labelStyle(.iconOnly)
+            .font(.title3.weight(.semibold))
+            .frame(width: 44, height: 44)
+            .background(.fill.tertiary, in: .circle)
+            .contentShape(.circle)
+            .buttonStyle(.borderless)
+            .foregroundStyle(.primary)
+    }
+
+    private var quickAmountButtons: some View {
+        HStack(spacing: 8) {
+            if let servingG = food.servingG {
+                quickAmountButton("1 serving", grams: servingG)
+            }
+            ForEach(Self.quickAmounts, id: \.self) { amount in
+                quickAmountButton("\(amount.formatted()) g", grams: amount)
+            }
+        }
+    }
+
+    private func quickAmountButton(_ title: LocalizedStringKey, grams: Double) -> some View {
+        Button { self.grams = grams } label: {
+            Text(title)
+                .font(.subheadline)
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(.fill.tertiary, in: .capsule)
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.primary)
+    }
+
+    private func macroRow(_ macro: Macro, per100g: Double) -> some View {
+        LabeledContent {
+            Text(amount(per100g).grams)
+        } label: {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(macro.color)
+                    .frame(width: 10, height: 10)
+                    .accessibilityHidden(true)
+                Text(macro.label)
             }
         }
     }

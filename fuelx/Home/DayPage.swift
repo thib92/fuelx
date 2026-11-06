@@ -126,7 +126,7 @@ struct DayPage: View {
     }
 }
 
-private struct SectionTitle: View {
+struct SectionTitle: View {
     let title: LocalizedStringKey
     var trailing: LocalizedStringKey?
 

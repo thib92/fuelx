@@ -107,7 +107,7 @@ struct DayOverview: View {
 }
 
 /// The macros, in the order the day shows them.
-enum Macro {
+enum Macro: CaseIterable {
     case carbs, protein, fat
 
     var label: String {
